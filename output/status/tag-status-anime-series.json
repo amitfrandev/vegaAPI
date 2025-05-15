@@ -1,0 +1,17 @@
+{
+  "timestamp": "2025-05-15T07:37:38.737Z",
+  "category": {
+    "type": "anime-series",
+    "name": "Anime",
+    "slug": "",
+    "path": "anime-series"
+  },
+  "tag": "anime-series",
+  "categoryUrl": "anime-series",
+  "processed": 2,
+  "successful": 2,
+  "movieIds": [
+    4475,
+    4437
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "timestamp": "2025-05-15T07:37:36.600Z",
+  "category": {
+    "type": "web-series",
+    "name": "Netflix",
+    "slug": "netflix",
+    "path": "netflix"
+  },
+  "tag": "netflix",
+  "categoryUrl": "netflix",
+  "processed": 11,
+  "successful": 11,
+  "movieIds": [
+    4271,
+    4609,
+    4521,
+    4606,
+    4603,
+    4555,
+    4554,
+    4553,
+    4533,
+    4491,
+    4448
+  ]
+}
