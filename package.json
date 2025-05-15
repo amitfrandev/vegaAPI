@@ -2,14 +2,14 @@
   "name": "vega-api",
   "version": "1.0.0",
   "description": "Movie details fetcher for Vega Movies",
-  "main": "src/index.js",
+  "main": "src/web/serve-api.js",
   "scripts": {
-    "start": "node src/web/api.js",
+    "start": "node src/web/serve-api.js",
+    "build": "node src/cli/generate-category-sitemap.js && node src/cli/update.js && node src/cli/tag-category-inserter.js",
     "fetch": "node src/cli/fetch.js",
     "update": "node src/cli/update.js",
     "serve": "node src/web/serve-api.js",
     "tag": "node src/cli/tag-category-inserter.js",
-    "sitemap": "node src/cli/generate-sitemap.js",
     "migrate": "node src/cli/migrate.js",
     "category-sitemap": "node src/cli/generate-category-sitemap.js"
   },
