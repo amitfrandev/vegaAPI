@@ -26,9 +26,6 @@ coverage/
 # Exception: Include the main database file
 !db/movies.db
 
-src/cli/*
-src/script/*
-src/utils/*
 # Logs
 logs/
 *.log
