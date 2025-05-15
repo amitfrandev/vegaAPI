@@ -179,6 +179,37 @@ Alternatively, you can use direct node commands:
 
 This API has been optimized to work with Vercel's serverless functions. To deploy:
 
+### Method 1: Using JSON for Serverless Deployment (Recommended)
+
+Since SQLite databases don't work well in the Vercel serverless environment, we've created a JSON-based approach:
+
+1. **Export Database to JSON**:
+   ```
+   npm run export-db
+   ```
+   This will convert your SQLite database to JSON files in the `api/data` directory.
+
+2. **Prepare for Deployment**:
+   ```
+   npm run vercel-prepare
+   ```
+   This runs the export and build scripts to prepare your app for Vercel.
+
+3. **Deploy to Vercel**:
+   - Push your code to GitHub
+   - Import the repository in Vercel
+   - Set the output directory to `/api`
+   - Vercel will automatically deploy your API
+
+4. **Updating Data**:
+   - When your movie data changes, run `npm run export-db` again
+   - Commit and push the changes
+   - Vercel will redeploy with the updated data
+
+### Method 2: Traditional SQLite Deployment (Not Recommended)
+
+This method is only included for reference and is **not recommended** as it will likely fail on Vercel:
+
 1. **Push to GitHub**: Ensure your code is pushed to a GitHub repository.
 
 2. **Connect to Vercel**:
@@ -197,17 +228,13 @@ This API has been optimized to work with Vercel's serverless functions. To deplo
 4. **Deploy**:
    - Click "Deploy"
    - Vercel will build and deploy your API
-   
-5. **Access Your API**:
-   - Once deployed, your API will be available at:
-     `https://your-project-name.vercel.app/api/all`
-   - Other endpoints can be accessed as per the API documentation
 
 ### Important Notes for Vercel Deployment
 
-- The sqlite database file (`movies.db`) is included in the deployment
-- API is read-only to fit with serverless limitations
-- For large databases, consider using a database service like Supabase or PlanetScale
+- The JSON-based approach allows read-only access to your data without SQLite compatibility issues
+- All data must be exported before deployment
+- The serverless function size limit may be an issue for very large databases (>50MB)
+- For very large datasets, consider using a proper cloud database service
 
 ## Troubleshooting
 

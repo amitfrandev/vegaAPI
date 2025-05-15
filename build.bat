@@ -1,12 +1,12 @@
 @echo off
 echo Building API for Vercel deployment...
 
-:: Create api directory if it doesn't exist
-if not exist api mkdir api
+:: Run the database export script first
+echo Exporting database to JSON...
+node src\cli\db-to-json.js
 
-:: Copy the database to api folder
-if not exist api\output mkdir api\output
-if not exist api\output\db mkdir api\output\db
-copy output\db\movies.db api\output\db\movies.db /Y
+:: Run the cross-platform build preparation script
+echo Running build preparation script...
+node scripts\prepare-build.js
 
 echo Build complete! 
