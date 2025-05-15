@@ -17,9 +17,181 @@ const path = require('path');
 // Create the Express app
 const app = express();
 
+// In-memory cache implementation
+const cache = {
+  data: {},
+  maxAge: 5 * 60 * 1000, // 5 minutes in milliseconds
+  
+  // Set a value in the cache
+  set: function(key, value, customMaxAge = null) {
+    const expires = Date.now() + (customMaxAge || this.maxAge);
+    this.data[key] = { value, expires };
+    return value;
+  },
+  
+  // Get a value from the cache
+  get: function(key) {
+    const item = this.data[key];
+    if (!item) return null;
+    
+    // Return null if item has expired
+    if (Date.now() > item.expires) {
+      delete this.data[key];
+      return null;
+    }
+    
+    return item.value;
+  },
+  
+  // Clear all cache
+  clear: function() {
+    this.data = {};
+  },
+  
+  // Clear expired items
+  clearExpired: function() {
+    const now = Date.now();
+    Object.keys(this.data).forEach(key => {
+      if (now > this.data[key].expires) {
+        delete this.data[key];
+      }
+    });
+  }
+};
+
+// Clean expired cache items every 10 minutes
+setInterval(() => {
+  cache.clearExpired();
+}, 10 * 60 * 1000);
+
+// Caching middleware
+function cacheMiddleware(duration = null) {
+  return (req, res, next) => {
+    // Skip caching for non-GET requests
+    if (req.method !== 'GET') return next();
+    
+    // Generate a cache key from the request URL and query parameters
+    const cacheKey = `${req.originalUrl || req.url}`;
+    
+    // Check if we have a cached response
+    const cachedResponse = cache.get(cacheKey);
+    if (cachedResponse) {
+      // Return the cached response
+      return res.json(cachedResponse);
+    }
+    
+    // Store the original json method
+    const originalJson = res.json;
+    
+    // Override the json method to cache the response
+    res.json = function(body) {
+      // Cache the response
+      cache.set(cacheKey, body, duration);
+      // Call the original json method
+      return originalJson.call(this, body);
+    };
+    
+    next();
+  };
+}
+
+// User agent tracking middleware
+function userAgentMiddleware(req, res, next) {
+  const userAgent = req.headers['user-agent'] || 'Unknown';
+  
+  // Log user agent for analytics
+  console.log(`Request from: ${userAgent} - ${req.method} ${req.originalUrl}`);
+  
+  // Add user agent to request object for future use
+  req.userAgentData = {
+    userAgent,
+    // Parse user agent to determine client type
+    isMobile: /Mobile|Android|iPhone|iPad|iPod/i.test(userAgent),
+    isBot: /bot|crawler|spider|googlebot|bingbot|yahoo|baidu/i.test(userAgent),
+    browser: getBrowserInfo(userAgent),
+    timestamp: new Date().toISOString()
+  };
+  
+  // Potentially block known bad bots or crawlers
+  if (req.userAgentData.isBot && isMaliciousBot(userAgent)) {
+    return res.status(403).json({
+      success: false,
+      error: 'Access Denied',
+      message: 'Suspicious request detected'
+    });
+  }
+  
+  next();
+}
+
+// Helper function to determine browser info
+function getBrowserInfo(userAgent) {
+  if (/Chrome/i.test(userAgent)) return 'Chrome';
+  if (/Firefox/i.test(userAgent)) return 'Firefox';
+  if (/Safari/i.test(userAgent) && !/Chrome/i.test(userAgent)) return 'Safari';
+  if (/MSIE|Trident/i.test(userAgent)) return 'Internet Explorer';
+  if (/Edge/i.test(userAgent)) return 'Edge';
+  return 'Other';
+}
+
+// Helper function to detect malicious bots
+function isMaliciousBot(userAgent) {
+  const maliciousBotPatterns = [
+    /PetalBot/i,
+    /zgrab/i,
+    /SemrushBot/i,
+    // Add more known malicious bot patterns as needed
+  ];
+  
+  return maliciousBotPatterns.some(pattern => pattern.test(userAgent));
+}
+
+// Rate limiting implementation
+const rateLimits = {
+  ips: {},
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  maxRequests: 100, // Max 100 requests per 15 minutes
+  
+  // Check if the IP has exceeded the limit
+  isRateLimited: function(ip) {
+    const now = Date.now();
+    
+    // Initialize or clear expired entries
+    if (!this.ips[ip] || now - this.ips[ip].windowStart > this.windowMs) {
+      this.ips[ip] = {
+        windowStart: now,
+        count: 0
+      };
+    }
+    
+    // Increment the request count
+    this.ips[ip].count++;
+    
+    // Check if rate limit is exceeded
+    return this.ips[ip].count > this.maxRequests;
+  }
+};
+
+// Rate limiting middleware
+function rateLimitMiddleware(req, res, next) {
+  const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+  
+  if (rateLimits.isRateLimited(ip)) {
+    return res.status(429).json({
+      success: false,
+      error: 'Too Many Requests',
+      message: 'Rate limit exceeded. Please try again later.'
+    });
+  }
+  
+  next();
+}
+
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(userAgentMiddleware);
+app.use(rateLimitMiddleware);
 
 // Read-only API middleware - reject any non-GET requests
 app.use((req, res, next) => {
@@ -90,7 +262,7 @@ const apiRouter = express.Router();
  * @desc    Get all movies with pagination (basic info only)
  * @access  Public
  */
-apiRouter.get('/all', async (req, res) => {
+apiRouter.get('/all', cacheMiddleware(5 * 60 * 1000), async (req, res) => {
   try {
     const { 
       page = 1, 
@@ -135,7 +307,7 @@ apiRouter.get('/all', async (req, res) => {
  * @desc    Get movies or series specifically (basic info only)
  * @access  Public
  */
-apiRouter.get('/type/:type', async (req, res) => {
+apiRouter.get('/type/:type', cacheMiddleware(5 * 60 * 1000), async (req, res) => {
   try {
     const { 
       page = 1, 
@@ -188,7 +360,7 @@ apiRouter.get('/type/:type', async (req, res) => {
  * @desc    Get a movie by URL (full info)
  * @access  Public
  */
-apiRouter.get('/url/:url', async (req, res) => {
+apiRouter.get('/url/:url', cacheMiddleware(30 * 60 * 1000), async (req, res) => {
   try {
     const url = decodeURIComponent(req.params.url);
     
@@ -245,7 +417,7 @@ apiRouter.get('/url/:url', async (req, res) => {
  * @desc    Get featured movies sorted by both post date and release year in descending order
  * @access  Public
  */
-apiRouter.get('/featured', async (req, res) => {
+apiRouter.get('/featured', cacheMiddleware(10 * 60 * 1000), async (req, res) => {
   try {
     const { 
       page = 1, 
@@ -292,7 +464,7 @@ apiRouter.get('/featured', async (req, res) => {
  * @desc    Get a movie by ID (full info)
  * @access  Public
  */
-apiRouter.get('/id/:id', async (req, res) => {
+apiRouter.get('/id/:id', cacheMiddleware(30 * 60 * 1000), async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
@@ -345,7 +517,7 @@ apiRouter.get('/id/:id', async (req, res) => {
  * @desc    Search for movies/series (basic info only)
  * @access  Public
  */
-apiRouter.get('/search', async (req, res) => {
+apiRouter.get('/search', cacheMiddleware(2 * 60 * 1000), async (req, res) => {
   try {
     const { 
       q, 
@@ -398,7 +570,7 @@ apiRouter.get('/search', async (req, res) => {
  * @desc    Get available filter options
  * @access  Public
  */
-apiRouter.get('/filters', async (req, res) => {
+apiRouter.get('/filters', cacheMiddleware(60 * 60 * 1000), async (req, res) => {
   try {
     const filters = await db.getFilters();
     res.json({ 
@@ -420,7 +592,7 @@ apiRouter.get('/filters', async (req, res) => {
  * @desc    Get database statistics
  * @access  Public
  */
-apiRouter.get('/stats', async (req, res) => {
+apiRouter.get('/stats', cacheMiddleware(60 * 60 * 1000), async (req, res) => {
   try {
     const stats = await db.getMovieStats();
     res.json({ 
@@ -442,7 +614,7 @@ apiRouter.get('/stats', async (req, res) => {
  * @desc    Get movies filtered by specific tag
  * @access  Public
  */
-apiRouter.get('/tags/:tag', async (req, res) => {
+apiRouter.get('/tags/:tag', cacheMiddleware(10 * 60 * 1000), async (req, res) => {
   try {
     const { 
       page = 1, 
@@ -496,7 +668,7 @@ apiRouter.get('/tags/:tag', async (req, res) => {
  * @desc    Get all categories organized by type
  * @access  Public
  */
-apiRouter.get('/categories', async (req, res) => {
+apiRouter.get('/categories', cacheMiddleware(60 * 60 * 1000), async (req, res) => {
   try {
     const categories = await db.getCategories();
     
@@ -526,7 +698,7 @@ apiRouter.get('/categories', async (req, res) => {
  * @desc    Get categories of a specific type
  * @access  Public
  */
-apiRouter.get('/categories/:type', async (req, res) => {
+apiRouter.get('/categories/:type', cacheMiddleware(60 * 60 * 1000), async (req, res) => {
   try {
     const categories = await db.getCategories();
     if (!categories) {
@@ -563,7 +735,7 @@ apiRouter.get('/categories/:type', async (req, res) => {
  * @desc    Get movies for a specific category
  * @access  Public
  */
-apiRouter.get('/categories/:type/:slug', async (req, res) => {
+apiRouter.get('/categories/:type/:slug', cacheMiddleware(10 * 60 * 1000), async (req, res) => {
   try {
     const { type, slug } = req.params;
     const { page = 1, limit = 20 } = req.query;
@@ -593,7 +765,7 @@ apiRouter.get('/categories/:type/:slug', async (req, res) => {
  * @desc    Comprehensive search for a category across all fields (tags, title, info, notes, synopsis)
  * @access  Public
  */
-apiRouter.get('/search/categories/:slug', async (req, res) => {
+apiRouter.get('/search/categories/:slug', cacheMiddleware(5 * 60 * 1000), async (req, res) => {
   try {
     const { slug } = req.params;
     const { page = 1, limit = 20 } = req.query;
@@ -643,8 +815,56 @@ apiRouter.get('/search/categories/:slug', async (req, res) => {
 // Register the API router
 app.use('/api', apiRouter);
 
-// Simple home route
+// Add cache control headers for all API responses
+app.use('/api', (req, res, next) => {
+  // Set cache control headers
+  res.setHeader('Cache-Control', 'public, max-age=300'); // 5 minutes
+  res.setHeader('Surrogate-Control', 'max-age=3600'); // 1 hour for CDNs
+  next();
+});
+
+// API documentation route with cache-control headers
+app.get('/api/docs', (req, res) => {
+  res.setHeader('Cache-Control', 'public, max-age=86400'); // 24 hours
+  res.json({
+    success: true,
+    data: {
+      apiName: "Vega Movies API",
+      version: "1.0.0",
+      description: "Read-only API for accessing movie and series data",
+      basePath: "/api",
+      endpoints: [
+        { path: "/all", method: "GET", description: "Get paginated list of movies/series (basic info)" },
+        { path: "/type/:type", method: "GET", description: "Get movies or series specifically (type must be 'movie' or 'series')" },
+        { path: "/id/:id", method: "GET", description: "Get detailed movie/series information by ID" },
+        { path: "/url/:url", method: "GET", description: "Get detailed movie/series information by URL path" },
+        { path: "/search", method: "GET", description: "Search for movies/series" },
+        { path: "/filters", method: "GET", description: "Get available filter options" },
+        { path: "/stats", method: "GET", description: "Get database statistics" },
+        { path: "/featured", method: "GET", description: "Get featured movies sorted by release year and post date" },
+        { path: "/tags/:tag", method: "GET", description: "Get movies filtered by specific tag" },
+        { path: "/categories", method: "GET", description: "Get all categories organized by type" },
+        { path: "/categories/:type", method: "GET", description: "Get categories of a specific type" },
+        { path: "/categories/:type/:slug", method: "GET", description: "Get movies for a specific category" },
+        { path: "/search/categories/:slug", method: "GET", description: "Search for a category across all fields" },
+        { path: "/docs", method: "GET", description: "API documentation" }
+      ],
+      commonParameters: [
+        { name: "page", type: "number", description: "Page number (default: 1)" },
+        { name: "limit", type: "number", description: "Items per page (default: 20)" },
+        { name: "type", type: "string", description: "Content type ('movie', 'series', or 'all')" },
+        { name: "year", type: "string", description: "Filter by release year" },
+        { name: "language", type: "string", description: "Filter by language" },
+        { name: "quality", type: "string", description: "Filter by quality (e.g., 720p, 1080p)" },
+        { name: "sort", type: "string", description: "Sort order ('newest', 'oldest', 'title', 'rating', etc.)" }
+      ]
+    }
+  });
+});
+
+// Simple home route with cache-control headers
 app.get('/', (req, res) => {
+  res.setHeader('Cache-Control', 'public, max-age=86400'); // 24 hours
   res.send(`
     <h1>Vega Movies API</h1>
     <p>Read-only API for accessing movie and series data</p>
@@ -663,6 +883,7 @@ app.get('/', (req, res) => {
       <li>GET /api/categories/:type - Get categories of a specific type</li>
       <li>GET /api/categories/:type/:slug - Get movies for a specific category</li>
       <li>GET /api/search/categories/:slug - Comprehensive search for a category across all fields (tags, title, info, notes, synopsis)</li>
+      <li>GET /api/docs - API documentation</li>
     </ul>
     <h2>Query Parameters:</h2>
     <ul>
@@ -675,6 +896,7 @@ app.get('/', (req, res) => {
       <li>sort - Sort order ('newest' [default, by post date], 'oldest', 'title', 'rating', 'relevance' [for search], 'id_newest')</li>
     </ul>
     <p>Note: This API is now using JSON files for data storage and is fully compatible with serverless deployments.</p>
+    <p>API now includes caching and user agent tracking for improved performance and security.</p>
   `);
 });
 
