@@ -800,4 +800,10 @@ async function startServer() {
   }
 }
 
-startServer(); 
+// Only start the server if this file is run directly (not when required/imported)
+if (require.main === module) {
+  startServer();
+}
+
+// Export the Express app for serverless environments (like Vercel)
+module.exports = app; 

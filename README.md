@@ -175,6 +175,40 @@ Alternatively, you can use direct node commands:
 * Download link extraction
 * Web interface for browsing movies
 
+## Deploying to Vercel
+
+This API has been optimized to work with Vercel's serverless functions. To deploy:
+
+1. **Push to GitHub**: Ensure your code is pushed to a GitHub repository.
+
+2. **Connect to Vercel**:
+   - Log in to [Vercel](https://vercel.com)
+   - Click "Import Project"
+   - Choose your Git repository
+   - Select "Import"
+
+3. **Configure the Project**:
+   - Vercel will auto-detect the Node.js project
+   - Set the output directory to `/api`
+   - Add the following environment variables:
+     - `NODE_ENV`: `production`
+     - `DB_PATH`: `output/db/movies.db`
+
+4. **Deploy**:
+   - Click "Deploy"
+   - Vercel will build and deploy your API
+   
+5. **Access Your API**:
+   - Once deployed, your API will be available at:
+     `https://your-project-name.vercel.app/api/all`
+   - Other endpoints can be accessed as per the API documentation
+
+### Important Notes for Vercel Deployment
+
+- The sqlite database file (`movies.db`) is included in the deployment
+- API is read-only to fit with serverless limitations
+- For large databases, consider using a database service like Supabase or PlanetScale
+
 ## Troubleshooting
 
 ### Module Not Found Errors
