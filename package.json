@@ -5,16 +5,12 @@
   "main": "api/index.js",
   "scripts": {
     "start": "node api/index.js",
-    "build": "node scripts/prepare-build.js",
+    "build": "node src/cli/db-to-json.js && node src/cli/generate-categories-tag-fetcher.js && node src/cli/db-to-json.js",
     "fetch": "node src/cli/fetch.js",
     "update": "node src/cli/update.js",
-    "serve": "node api/index.js",
-    "migrate": "node src/cli/migrate.js",
-    "category-sitemap": "node src/cli/generate-category-sitemap.js",
     "fetch-categories": "node src/cli/fetch-categories.js",
     "export-db": "node src/cli/db-to-json.js",
-    "fetch-category-tags": "node src/cli/generate-categories-tag-fetcher.js",
-    "vercel-prepare": "npm run export-db && npm run fetch-category-tags && npm run build"
+    "fetch-category-tags": "node src/cli/generate-categories-tag-fetcher.js"
   },
   "dependencies": {
     "axios": "^1.9.0",
