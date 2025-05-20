@@ -133,6 +133,29 @@ async function displayDatabaseStatus() {
   }
 }
 
+// Function to check if a movie has download links
+function hasDownloadLinks(movieDetails) {
+  if (!movieDetails || !movieDetails.info || !movieDetails.info.length) {
+    return false;
+  }
+  
+  // Find the first info entry with sections
+  const info = movieDetails.info.find(i => i.sections && i.sections.length > 0);
+  if (!info) {
+    return false;
+  }
+  
+  // Count total links
+  let totalLinks = 0;
+  info.sections.forEach(section => {
+    section.links.forEach(linkGroup => {
+      totalLinks += linkGroup.links ? linkGroup.links.length : 0;
+    });
+  });
+  
+  return totalLinks > 0;
+}
+
 async function main() {
   try {
     console.log('\n=== Vega Movies Updater ===');
@@ -178,6 +201,9 @@ async function main() {
       // Counter to track how many existing movies we've found in sequence
       let sequentialExistingMovies = 0;
       
+      // Flag to track if any movie on this page has download links
+      let pageHasDownloadLinks = false;
+      
       // Process each movie on this page
       for (let i = 0; i < result.movies.length; i++) {
         const pageMovie = result.movies[i];
@@ -200,6 +226,15 @@ async function main() {
             const movieDetails = await movieListService.getMovieDetails(pageMovie, { forceUpdate: true });
             
             if (movieDetails) {
+              // Check if movie has download links
+              const movieHasLinks = hasDownloadLinks(movieDetails);
+              console.log(`Movie has download links: ${movieHasLinks ? 'Yes' : 'No'}`);
+              
+              // Update the page flag if links are found
+              if (movieHasLinks) {
+                pageHasDownloadLinks = true;
+              }
+              
               // Preserve ID and created_at from existing movie
               movieDetails.id = existingMovie.id;
               
@@ -256,7 +291,21 @@ async function main() {
                   });
                 });
                 console.log(`Download Sections: ${info.sections.length} with ${totalLinks} total links`);
+                
+                // Update the page flag if links are found
+                if (totalLinks > 0) {
+                  pageHasDownloadLinks = true;
+                }
               }
+            }
+            
+            // Check if movie has download links
+            const movieHasLinks = hasDownloadLinks(movieDetails);
+            console.log(`Movie has download links: ${movieHasLinks ? 'Yes' : 'No'}`);
+            
+            // Update the page flag if links are found
+            if (movieHasLinks) {
+              pageHasDownloadLinks = true;
             }
             
             // Use empty tags array
@@ -283,6 +332,26 @@ async function main() {
           continueUpdating = false;
           break;
         }
+      }
+      
+      // Check if any movie on this page had download links
+      console.log(`\n=== Page ${currentPage} summary ===`);
+      console.log(`Page has movies with download links: ${pageHasDownloadLinks ? 'Yes' : 'No'}`);
+      
+      if (!pageHasDownloadLinks) {
+        console.log(`No movies with download links found on page ${currentPage}, assuming all subsequent pages are already updated.`);
+        continueUpdating = false;
+        // Add this page to the list of fully processed pages
+        if (!trackingData.fetchedPages.includes(currentPage)) {
+          trackingData.fetchedPages.push(currentPage);
+        }
+        saveTrackingData(trackingData);
+        break;
+      }
+      
+      // Add this page to the list of fully processed pages
+      if (!trackingData.fetchedPages.includes(currentPage)) {
+        trackingData.fetchedPages.push(currentPage);
       }
       
       // Move to next page unless we need to stop

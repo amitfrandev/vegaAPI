@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-05-20T07:08:12.426Z",
+  "timestamp": "2025-05-20T07:39:49.513Z",
   "category": {
     "type": "anime-series",
     "name": "Anime",
@@ -8,10 +8,11 @@
   },
   "tag": "anime-series",
   "categoryUrl": "anime-series",
-  "processed": 2,
-  "successful": 2,
+  "processed": 3,
+  "successful": 3,
   "movieIds": [
-    4475,
-    4437
+    4736,
+    4735,
+    4475
   ]
 }
