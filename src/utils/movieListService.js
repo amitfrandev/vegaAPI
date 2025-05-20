@@ -2180,9 +2180,26 @@ async function fetchNextdriveLinks(url, heading = null) {
       }
     });
     
+    // Check if page content has episode markers
+    const pageContent = $('.entry.themeform').text();
+    const hasEpisodeText = /episode\s*\d+/i.test(pageContent) || 
+                           /season\s*\d+\s*episode/i.test(pageContent) ||
+                           /[Ss]\d+[Ee]\d+/i.test(pageContent);
+    
+    // Check if heading contains episode information
+    let headingEpisodeNum = null;
+    if (heading) {
+      const episodeMatch = heading.match(/Episode[s]*[:\s-]+(\d+)/i) ||
+                           heading.match(/E(\d+)/i);
+      if (episodeMatch) {
+        headingEpisodeNum = episodeMatch[1];
+        console.log(`Found episode number in heading: ${headingEpisodeNum}`);
+      }
+    }
+    
     // If we found episode headings, organize links by button type
     if (episodeHeadings.length > 0) {
-      console.log(`Found ${episodeHeadings.length} episode headings`);
+      console.log(`Found ${episodeHeadings.length} episode headings in content`);
       
       // Initialize structure to hold all button types
       const buttonTypes = {};
@@ -2282,81 +2299,16 @@ async function fetchNextdriveLinks(url, heading = null) {
               }
             }
           }
-          
-          // If we still couldn't find links, look at each button to see if its text or parent context mentions this episode
-          if (!foundLinks) {
-            $('a').each(function() {
-              const link = $(this);
-              const href = link.attr('href');
-              const buttonText = link.text().trim();
-              
-              // Skip links that go back to the same page or are anchors
-              if (href && !href.includes('#') && href !== url) {
-                const parentText = link.parent().text().trim();
-                
-                // If the button text or parent text contains the episode number
-                if ((buttonText && buttonText.includes(`Episode ${episodeNum}`)) ||
-                    (parentText && parentText.includes(`Episode ${episodeNum}`))) {
-                  
-                  const buttonType = getButtonType(buttonText);
-                  
-                  // Initialize this button type if not exists
-                  if (!buttonTypes[buttonType]) {
-                    buttonTypes[buttonType] = {
-                      buttonLabel: buttonText || `${buttonType} Button`,
-                      type: buttonType,
-                      links: {}
-                    };
-                  }
-                  
-                  // Add this link to the appropriate episode number
-                  buttonTypes[buttonType].links[episodeNum] = href;
-                  console.log(`Found direct download link for Episode ${episodeNum} (by context search): ${buttonText || 'Download Now'} -> ${href}`);
-                }
-              }
-            });
-          }
         }
       }
       
       // Return array of button types with their links
       return Object.values(buttonTypes);
     } else {
-      // Handle single episode content (non-episodic) or button-based layout
+      // Handle non-episodic content (like movies or zip packs)
       const buttonTypes = {};
       
-      // Check if the page actually has any episode indicators
-      let hasEpisodeIndicators = false;
-      let episodeNum = null;
-      
-      // Check the page content for any episode mentions
-      const pageText = $('body').text().toLowerCase();
-      const hasEpisodeText = pageText.includes('episode') || 
-                            pageText.includes('episodes') ||
-                            /e\d+/i.test(pageText);
-      
-      // Extract episode number from original heading if possible
-      if (heading) {
-        const episodeMatch = heading.match(/Episode[s]*[:\s-]+(\d+)/i) ||
-                             heading.match(/E(\d+)/i);
-        if (episodeMatch) {
-          episodeNum = episodeMatch[1];
-          hasEpisodeIndicators = true;
-        }
-      }
-      
-      // Only use episode number if we have clear evidence it's episode-based content
-      if (!hasEpisodeIndicators && !hasEpisodeText) {
-        // For content without episode indicators, use a key that won't add "Episode" to labels
-        episodeNum = 'main'; // Use a non-numeric key that indicates it's the main content
-      } else if (episodeNum === null) {
-        // If we detected episodes but couldn't identify a specific number, default to 1
-        episodeNum = '1';
-      }
-      
-      // First look for structured button groups (used in many NextDrive pages)
-      // Example: G-Direct, V-Cloud, DropGalaxy buttons for each episode
-      const buttonGroups = {};
+      // Process buttons/links by type (e.g., G-Direct, V-Cloud, etc.)
       const buttonLabels = ['G-Direct', 'V-Cloud', 'DropGalaxy', 'GDToT', 'Filepress', 'Batch/Zip'];
       
       // Look for distinct button types and collect their links
@@ -2380,14 +2332,33 @@ async function fetchNextdriveLinks(url, heading = null) {
                 buttonTypes[buttonType] = {
                   // Use the full button text including size information
                   buttonLabel: buttonText || `${buttonType} Button`,
-                  type: buttonType,
-                  links: {}
+                  type: buttonType
                 };
+                
+                // Determine if we should use links object or direct link
+                if (headingEpisodeNum || hasEpisodeText) {
+                  // Only use episodic format if we have episode info
+                  buttonTypes[buttonType].links = {};
+                  buttonTypes[buttonType].links[headingEpisodeNum || '1'] = href;
+                  console.log(`Found ${buttonType} link for Episode ${headingEpisodeNum || '1'}: ${buttonText || 'Download Now'} -> ${href}`);
+                } else {
+                  // For non-episode content, use direct link
+                  buttonTypes[buttonType].link = href;
+                  console.log(`Found ${buttonType} link (non-episode): ${buttonText || 'Download Now'} -> ${href}`);
+                }
+              } else {
+                // If this button type already exists, add the link
+                if (buttonTypes[buttonType].links) {
+                  // For episodic content, add to links object
+                  if (headingEpisodeNum || hasEpisodeText) {
+                    buttonTypes[buttonType].links[headingEpisodeNum || '1'] = href;
+                    console.log(`Found additional ${buttonType} link for Episode ${headingEpisodeNum || '1'}: ${buttonText || 'Download Now'} -> ${href}`);
+                  }
+                } else {
+                  // For non-episode content, prefer the first link found
+                  console.log(`Additional ${buttonType} link found but using first one: ${buttonText || 'Download Now'} -> ${href}`);
+                }
               }
-              
-              // Use a default episode number since we don't have episode headings
-              buttonTypes[buttonType].links[episodeNum] = href;
-              console.log(`Found ${buttonType} link: ${buttonText || 'Download Now'} -> ${href}`);
             }
           });
         }
@@ -2411,14 +2382,21 @@ async function fetchNextdriveLinks(url, heading = null) {
               buttonTypes[buttonType] = {
                 // Use the full button text including size information
                 buttonLabel: buttonText || `${buttonType} Button`,
-                type: buttonType,
-                links: {}
+                type: buttonType
               };
+              
+              // Determine if we should use links object or direct link
+              if (headingEpisodeNum || hasEpisodeText) {
+                // Only use episodic format if we have episode info
+                buttonTypes[buttonType].links = {};
+                buttonTypes[buttonType].links[headingEpisodeNum || '1'] = href;
+                console.log(`Found ${buttonType} link for Episode ${headingEpisodeNum || '1'}: ${buttonText || 'Download Now'} -> ${href}`);
+              } else {
+                // For non-episode content, use direct link
+                buttonTypes[buttonType].link = href;
+                console.log(`Found ${buttonType} link (non-episode): ${buttonText || 'Download Now'} -> ${href}`);
+              }
             }
-            
-            // Store links with the default episode number
-            buttonTypes[buttonType].links[episodeNum] = href;
-            console.log(`Found download link: ${buttonText || 'Download Now'} -> ${href}`);
           }
         });
       }
