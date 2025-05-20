@@ -181,10 +181,12 @@ async function saveMovie(movie, options = {}) {
             // Movie doesn't exist, insert it
             // Store normalized URL in database
             db.run(
-              "INSERT INTO movies (url, title, info, tags, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+              "INSERT INTO movies (url, title, thumbnail, date, info, tags, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
               [
                 normalizedUrl, // Store the normalized URL
                 movie.title,
+                movie.thumbnail || null,
+                movie.date || null,
                 JSON.stringify(movie.info),
                 tagsJson,
                 new Date().toISOString(),

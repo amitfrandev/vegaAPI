@@ -10,7 +10,6 @@
     "update": "node src/cli/update.js",
     "fetch-categories": "node src/cli/fetch-categories.js",
     "export-db": "node src/cli/db-to-json.js",
-    "thumbnail": "node src/cli/db-insert-empty-thumbnails.js",
     "fetch-category-tags": "node src/cli/generate-categories-tag-fetcher.js"
   },
   "dependencies": {

@@ -1603,37 +1603,33 @@ async function processFallbackLinks($, content) {
 // Helper function to clean URL by removing domain
 function cleanUrl(url) {
   if (!url) return '';
-  // If it's already a relative URL (starts with / or no protocol), just clean it
-  if (url.startsWith('/') || !url.includes('://')) {
-    return url.replace(/^\/+/, ''); // Remove leading slashes
+  // If URL doesn't start with http or https, try to add the domain
+  if (!url.startsWith('http')) {
+    const apiUrl = config.api.rootUrl;
+    return `${apiUrl}${url.startsWith('/') ? '' : '/'}${url}`;
   }
-  try {
-    // If it's an absolute URL, parse it and return the path
-    const urlObj = new URL(url);
-    return urlObj.pathname.replace(/^\/+/, ''); // Remove leading slashes
-  } catch (err) {
-    console.error('Error cleaning URL:', err);
-    // If URL parsing fails, just return the original URL without leading slashes
-    return url.replace(/^\/+/, '');
-  }
+  // Return the full URL
+  return url;
 }
 
 // Helper function to clean thumbnail path
 function cleanThumbnail(thumbnail) {
   if (!thumbnail) return '';
-  // If it's already a relative URL (starts with / or no protocol), just clean it
-  if (thumbnail.startsWith('/') || !thumbnail.includes('://')) {
-    return thumbnail.replace(/^\/+/, ''); // Remove leading slashes
+  
+  // Strip domain part (e.g., https://app.vegamovies.bot/) and keep only the path
+  if (thumbnail.includes('://')) {
+    try {
+      const urlObj = new URL(thumbnail);
+      return urlObj.pathname.replace(/^\/+/, ''); // Remove leading slashes
+    } catch (err) {
+      console.error('Error parsing thumbnail URL:', err);
+      // If URL parsing fails, try to remove common domain patterns
+      return thumbnail.replace(/^https?:\/\/[^\/]+\//, '');
+    }
   }
-  try {
-    // If it's an absolute URL, parse it and return the path
-    const urlObj = new URL(thumbnail);
-    return urlObj.pathname.replace(/^\/+/, ''); // Remove leading slashes
-  } catch (err) {
-    console.error('Error cleaning thumbnail:', err);
-    // If URL parsing fails, just return the original thumbnail without leading slashes
-    return thumbnail.replace(/^\/+/, '');
-  }
+  
+  // Already a relative path, just clean leading slashes
+  return thumbnail.replace(/^\/+/, '');
 }
 
 // Helper function to clean movie data
@@ -1666,13 +1662,8 @@ function cleanMovieData(movie) {
   const movieWithoutPage = { ...movie };
   delete movieWithoutPage.page;
   
-  const cleanedMovie = handleEmptyStrings({
-    ...movieWithoutPage,
-    url: cleanUrl(movieWithoutPage.url),
-    thumbnail: cleanThumbnail(movieWithoutPage.thumbnail)
-  });
-  
-  return cleanedMovie;
+  // Return the cleaned movie with full URLs preserved
+  return handleEmptyStrings(movieWithoutPage);
 }
 
 // Update getMovieList function to handle empty arrays correctly
@@ -1774,8 +1765,7 @@ async function getMovieList(page = 1) {
         }
       }
       
-      const thumdata = element.closest('div.post-thumbnail');
-      const thumbnail = cleanThumbnail(thumdata.find('img').attr('src'));
+      const thumbnail = cleanThumbnail(article.find('img').attr('src'));
       
       if (title && url) {
         // Store page separately for tracking but don't include it in the final movie object for database
