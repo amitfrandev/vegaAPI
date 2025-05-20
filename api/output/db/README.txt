@@ -1,1 +1,0 @@
-Database files are moved to JSON format in api/data directory
