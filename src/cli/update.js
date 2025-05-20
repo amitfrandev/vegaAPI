@@ -359,7 +359,7 @@ async function main() {
         currentPage++;
         
         // If we've processed 5 pages, stop to avoid excessive requests
-        if (currentPage > 5) {
+        if (currentPage > 100) {
           console.log('Reached maximum page limit (5) for this update session.');
           continueUpdating = false;
         }

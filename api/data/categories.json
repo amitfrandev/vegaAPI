@@ -1,6 +1,6 @@
 {
-  "timestamp": "2025-05-20T12:59:08.719Z",
-  "totalCategories": 126,
+  "timestamp": "2025-05-20T13:08:20.077Z",
+  "totalCategories": 128,
   "categories": {
     "movies-by-genres": {
       "title": "Movie Genres",
@@ -160,18 +160,21 @@
     "special": {
       "title": "Special Categories",
       "description": "Other special movie categories",
-      "slugs": []
+      "slugs": [
+        "special"
+      ]
     },
     "adult": {
       "title": "Adult Content",
       "description": "Adult content categories",
       "slugs": [
-        "18-adult-series"
+        "18+",
+        "adult"
       ]
     }
   },
   "stats": {
-    "total": 126,
+    "total": 128,
     "byType": {
       "movies-by-genres": {
         "total": 28
@@ -189,10 +192,10 @@
         "total": 6
       },
       "special": {
-        "total": 0
+        "total": 1
       },
       "adult": {
-        "total": 1
+        "total": 2
       }
     }
   }
