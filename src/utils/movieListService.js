@@ -1600,65 +1600,6 @@ async function processFallbackLinks($, content) {
   return sections.length > 0 ? sections : null;
 }
 
-// Add this helper function at the top with other utility functions
-function extractThumbnailPath(thumbnailUrl) {
-  if (!thumbnailUrl) return '';
-  try {
-    const url = new URL(thumbnailUrl);
-    return url.pathname;
-  } catch (error) {
-    console.error('Error parsing thumbnail URL:', error);
-    return thumbnailUrl;
-  }
-}
-
-// Add this helper function to compare and merge movie data
-function mergeMovieData(existingMovie, newMovie) {
-  // Keep the existing movie's data but update with new information
-  const updatedMovie = { ...existingMovie };
-  
-  // Update basic info if changed
-  updatedMovie.title = newMovie.title || existingMovie.title;
-  updatedMovie.date = newMovie.date || existingMovie.date;
-  updatedMovie.thumbnail = newMovie.thumbnail || existingMovie.thumbnail;
-  
-  // Merge info arrays
-  if (newMovie.info && newMovie.info.length > 0) {
-    // For each new info object
-    newMovie.info.forEach(newInfo => {
-      // Find matching existing info by movie/series name
-      const existingInfoIndex = updatedMovie.info.findIndex(
-        existingInfo => 
-          (existingInfo.movie_name === newInfo.movie_name) ||
-          (existingInfo.series_name === newInfo.series_name)
-      );
-      
-      if (existingInfoIndex >= 0) {
-        // Update existing info with new data
-        const existingInfo = updatedMovie.info[existingInfoIndex];
-        updatedMovie.info[existingInfoIndex] = {
-          ...existingInfo,
-          ...newInfo,
-          // Merge sections
-          sections: [
-            ...existingInfo.sections,
-            ...newInfo.sections.filter(newSection => 
-              !existingInfo.sections.some(existingSection => 
-                existingSection.note === newSection.note
-              )
-            )
-          ]
-        };
-        } else {
-        // Add new info if it doesn't exist
-        updatedMovie.info.push(newInfo);
-      }
-    });
-  }
-  
-  return updatedMovie;
-}
-
 // Helper function to clean URL by removing domain
 function cleanUrl(url) {
   if (!url) return '';
@@ -1741,7 +1682,7 @@ async function getMovieList(page = 1) {
     // await track.startPageProcessing(page);
 
     // Make sure we have a valid API URL
-    const apiUrl = config.api.rootUrl || process.env.API_URL || 'https://vegamovies.bot';
+    const apiUrl = config.api.rootUrl;
     const url = `${apiUrl}/page/${page}/`;
     console.log(`Fetching movie list from: ${url}`);
     const content = await httpClient.getContentWithGot(url);
@@ -1833,8 +1774,8 @@ async function getMovieList(page = 1) {
         }
       }
       
-      // Get the thumbnail
-      const thumbnail = cleanThumbnail(article.find('img').attr('src'));
+      const thumdata = element.closest('div.post-thumbnail');
+      const thumbnail = cleanThumbnail(thumdata.find('img').attr('src'));
       
       if (title && url) {
         // Store page separately for tracking but don't include it in the final movie object for database
@@ -2045,7 +1986,7 @@ async function getMovieDetails(movie, options = {}) {
     let url = movieUrl;
     if (!url.startsWith('http')) {
       // Check if we have a valid API URL to prepend
-      const apiUrl = config.api.rootUrl || process.env.API_URL || 'https://vegamovies.bot';
+      const apiUrl = config.api.rootUrl;
       url = `${apiUrl}${url.startsWith('/') ? '' : '/'}${url}`;
       console.log(`Using full URL: ${url}`);
     }
@@ -2196,7 +2137,7 @@ async function fetchNextdriveLinks(url, heading = null) {
         'User-Agent': config.userAgent,
         'Accept': 'text/html,application/xhtml+xml,application/xml',
         'Accept-Language': 'en-US,en;q=0.5',
-        'Referer': 'https://vegamovies.bot/',
+        'Referer': `${config.api.rootUrl}/`,
       }
     });
     

@@ -1,15 +1,18 @@
 require('dotenv').config();
 const path = require('path');
 
+
+const maindoamin = 'app.vegamovies.bot';
+const mainUrl = `https://${maindoamin}`;
 // Get the domain from API_URL or use default
 const getDomain = () => {
   // Use fixed domain instead of environment variable
-  const apiUrl = 'https://vegamovies.bot';
+  const apiUrl = mainUrl;
   try {
     return new URL(apiUrl).hostname;
   } catch (error) {
     console.error('Error parsing API_URL:', error);
-    return 'vegamovies.bot';
+    return maindoamin;
   }
 };
 
@@ -36,7 +39,7 @@ const paths = {
 
 // API Configuration
 const apiConfig = {
-  rootUrl: 'https://app.vegamovies.bot',
+  rootUrl: mainUrl,
   port: 3000,
   host: '127.0.0.1',
   cookies: '_ga=GA1.1.1008300213.1746132442; cf_clearance=pb455Hlp3XcXVXIzrUBXkLWAZAahiKVnrAlxfSm3KSw-1746687834-1.2.1.1-lzQMvS2bud73ezayP6MteRHNFS3asr7VdaPCUdvUOKh2.NpNHYK4_BeeYpNoWUxmDWto5_aWVgwPYfEn027dQyOL6exqZdJDntRit8W4ZCIuwreTnTofYk8QYaB6ifPIamkukzd64MRP9MAJOzc6Yy0PjTOTbUKMj_VcMRkGIostWuHn5IM9Rp2maonIDlIpEzDh6R9g9R4EE_StKcsov5W2odEFEMA7rjtnqlIXG56aDTjx9bMan8yz8ZFASEFgirnqt3uCxTLutAY_mrFkwVcBbUVDp.Vv3.nYjrVrqazmbHrhZH7K5f04wQpU2_ND6A.wRWL9PMxirTAP30TtlVixnJs_ZADGQJPew.6eJGM; _ga_BLZGKYN5PF=GS2.1.s1746855438$o14$g0$t1746855438$j0$l0$h0',

@@ -15,7 +15,6 @@ async function main() {
       const name2 = name[0];
       const formatText = name2 ? name2.replace(/\s+/g, "+") : null;
       const url = `${config.api.rootUrl}/?s=${formatText}`;
-        console.log(name2);
         
       const content = await httpClient.getContentWithGot(url);
       const $ = cheerio.load(content);
