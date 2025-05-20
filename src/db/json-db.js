@@ -387,7 +387,6 @@ async function getCategories() {
 
 // Get movies by category
 async function getMoviesByCategory(type, slug, page = 1, limit = MOVIES_PER_PAGE) {
-  // For now, we'll do a simple search in movie titles and tags
   // Initialize
   initializeDb();
   
@@ -395,7 +394,35 @@ async function getMoviesByCategory(type, slug, page = 1, limit = MOVIES_PER_PAGE
     throw new Error('Failed to load manifest');
   }
   
-  // We need to load all chunks to search
+  // First, try to get pre-generated category file
+  try {
+    const categoryFilePath = path.join(DATA_DIR, 'categories', type, `${slug}.json`);
+    
+    if (fs.existsSync(categoryFilePath)) {
+      console.log(`Using pre-generated category file: ${categoryFilePath}`);
+      const categoryData = JSON.parse(fs.readFileSync(categoryFilePath, 'utf8'));
+      
+      // Apply pagination
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const paginatedItems = categoryData.items.slice(startIndex, endIndex);
+      
+      return {
+        movies: paginatedItems,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalItems: categoryData.totalItems,
+        totalPages: Math.ceil(categoryData.totalItems / limit)
+      };
+    }
+  } catch (error) {
+    console.error(`Error loading category file for ${type}/${slug}:`, error.message);
+    // Continue with fallback method if file not found or other error
+  }
+  
+  console.log(`No pre-generated category file found for ${type}/${slug}, using dynamic matching`);
+  
+  // Fallback: We need to load all chunks to search
   const allMovies = [];
   for (let i = 0; i < cache.manifest.moviesChunks; i++) {
     const chunk = getMoviesChunk(i);
@@ -407,7 +434,133 @@ async function getMoviesByCategory(type, slug, page = 1, limit = MOVIES_PER_PAGE
   // Convert slug to search term
   const searchTerm = slug.split('-').join(' ').toLowerCase();
   
-  // Look for matches in title and tags
+  // Look for matches based on category type
+  let matchingMovies = [];
+  
+  if (type === 'movies-by-genres') {
+    matchingMovies = allMovies.filter(movie => {
+      // Check for genre in info
+      if (movie.info && movie.info.length > 0) {
+        const genres = movie.info[0].genre || movie.info[0].genres;
+        if (typeof genres === 'string' && genres.toLowerCase().includes(searchTerm)) {
+          return true;
+        } else if (Array.isArray(genres) && genres.some(g => g.toLowerCase().includes(searchTerm))) {
+          return true;
+        }
+      }
+      
+      // Check tags for genre
+      if (movie.tags && Array.isArray(movie.tags)) {
+        return movie.tags.some(tag => tag.toLowerCase().includes(searchTerm));
+      }
+      
+      return false;
+    });
+  } else if (type === 'movies-by-quality') {
+    matchingMovies = allMovies.filter(movie => {
+      // Check quality in info
+      if (movie.info && movie.info.length > 0 && movie.info[0].quality) {
+        return movie.info[0].quality.toLowerCase().includes(searchTerm);
+      }
+      
+      // Check tags for quality
+      if (movie.tags && Array.isArray(movie.tags)) {
+        return movie.tags.some(tag => tag.toLowerCase().includes(searchTerm));
+      }
+      
+      return false;
+    });
+  } else if (type === 'movies-by-year') {
+    matchingMovies = allMovies.filter(movie => {
+      // Check release year in info
+      if (movie.info && movie.info.length > 0 && movie.info[0].release_year) {
+        return movie.info[0].release_year === slug;
+      }
+      
+      // Check tags for year
+      if (movie.tags && Array.isArray(movie.tags)) {
+        return movie.tags.includes(slug);
+      }
+      
+      return false;
+    });
+  } else {
+    // Default: Check title and tags for any match
+    matchingMovies = allMovies.filter(movie => {
+      // Check title
+      if (movie.title.toLowerCase().includes(searchTerm)) {
+        return true;
+      }
+      
+      // Check tags
+      if (movie.tags && Array.isArray(movie.tags)) {
+        return movie.tags.some(tag => tag.toLowerCase().includes(searchTerm));
+      }
+      
+      return false;
+    });
+  }
+  
+  // Sort by date
+  const sortedMovies = sortMovies(matchingMovies, 'newest');
+  
+  // Apply pagination
+  const paginatedMovies = paginateMovies(sortedMovies, page, limit);
+  
+  return {
+    movies: paginatedMovies,
+    page: parseInt(page),
+    limit: parseInt(limit),
+    totalItems: matchingMovies.length,
+    totalPages: Math.ceil(matchingMovies.length / limit)
+  };
+}
+
+// Search movies by category (comprehensive search)
+async function searchMoviesByCategory(categorySlug, page = 1, limit = MOVIES_PER_PAGE) {
+  // Initialize
+  initializeDb();
+  
+  if (!cache.manifest) {
+    throw new Error('Failed to load manifest');
+  }
+  
+  // Try to find the category in any of the category types
+  const categoriesData = getCategories();
+  let foundType = null;
+  
+  if (categoriesData && categoriesData.categories) {
+    // Look through all category types
+    for (const [type, data] of Object.entries(categoriesData.categories)) {
+      if (data.slugs.includes(categorySlug)) {
+        foundType = type;
+        break;
+      }
+    }
+  }
+  
+  // If we found the category type, use the optimized function
+  if (foundType) {
+    console.log(`Found category ${categorySlug} in type ${foundType}, using optimized lookup`);
+    return getMoviesByCategory(foundType, categorySlug, page, limit);
+  }
+  
+  // Fallback to searching all movies
+  console.log(`Category ${categorySlug} not found in any type, using comprehensive search`);
+  
+  // Load all movies
+  const allMovies = [];
+  for (let i = 0; i < cache.manifest.moviesChunks; i++) {
+    const chunk = getMoviesChunk(i);
+    if (chunk) {
+      allMovies.push(...chunk);
+    }
+  }
+  
+  // Convert slug to search term
+  const searchTerm = categorySlug.split('-').join(' ').toLowerCase();
+  
+  // Comprehensive search across all fields
   const matchingMovies = allMovies.filter(movie => {
     // Check title
     if (movie.title.toLowerCase().includes(searchTerm)) {
@@ -416,10 +569,36 @@ async function getMoviesByCategory(type, slug, page = 1, limit = MOVIES_PER_PAGE
     
     // Check tags
     if (movie.tags && Array.isArray(movie.tags)) {
-      for (const tag of movie.tags) {
-        if (tag.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
+      if (movie.tags.some(tag => tag.toLowerCase().includes(searchTerm))) {
+        return true;
+      }
+    }
+    
+    // Check info fields
+    if (movie.info && movie.info.length > 0) {
+      const info = movie.info[0];
+      
+      // Check each field that might contain relevant information
+      if (info.genre && typeof info.genre === 'string' && info.genre.toLowerCase().includes(searchTerm)) {
+        return true;
+      }
+      if (info.genres && Array.isArray(info.genres) && info.genres.some(g => g.toLowerCase().includes(searchTerm))) {
+        return true;
+      }
+      if (info.quality && info.quality.toLowerCase().includes(searchTerm)) {
+        return true;
+      }
+      if (info.language && info.language.toLowerCase().includes(searchTerm)) {
+        return true;
+      }
+      if (info.platform && info.platform.toLowerCase().includes(searchTerm)) {
+        return true;
+      }
+      if (info.synopsis && info.synopsis.toLowerCase().includes(searchTerm)) {
+        return true;
+      }
+      if (info.notes && info.notes.toLowerCase().includes(searchTerm)) {
+        return true;
       }
     }
     
@@ -439,12 +618,6 @@ async function getMoviesByCategory(type, slug, page = 1, limit = MOVIES_PER_PAGE
     totalItems: matchingMovies.length,
     totalPages: Math.ceil(matchingMovies.length / limit)
   };
-}
-
-// Search movies by category (comprehensive search)
-async function searchMoviesByCategory(categorySlug, page = 1, limit = MOVIES_PER_PAGE) {
-  // This is similar to getMoviesByCategory but more comprehensive
-  return getMoviesByCategory('category', categorySlug, page, limit);
 }
 
 // No database connection to close in this implementation

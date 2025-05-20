@@ -628,24 +628,29 @@ apiRouter.get('/categories/:type/:slug', async (req, res) => {
   try {
     const { type, slug } = req.params;
     const { page = 1, limit = 20 } = req.query;
-
-    const result = await db.getMoviesByCategory(type, slug, parseInt(page), parseInt(limit));
     
-    // Transform to basic format (without detailed info)
-    result.items = result.movies.map(formatBasicMovieData);
-    delete result.movies;
+    const categoryTag = `${type}@${slug}`;
     
-    res.json({
-      success: true,
-      data: result
-    });
+    // Try to find movies by the category tag
+    const movies = await db.searchMoviesByTags([categoryTag], page, limit);
+    
+    // If no movies found with the tag, try the legacy approach
+    if (movies.items.length === 0) {
+      // Fall back to the old approach
+      console.log(`No movies found with tag ${categoryTag}, falling back to legacy category approach`);
+      const categoryMovies = await db.getMoviesByCategory(type, slug, page, limit);
+      
+      if (categoryMovies.items.length === 0) {
+        return res.status(404).json({ error: 'Category not found or contains no movies' });
+      }
+      
+      return res.json(categoryMovies);
+    }
+    
+    return res.json(movies);
   } catch (error) {
-    console.error('Error getting category movies:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Internal server error',
-      message: error.message
-    });
+    console.error('Error fetching movies by category:', error);
+    res.status(500).json({ error: 'Failed to fetch movies by category' });
   }
 });
 
@@ -658,49 +663,36 @@ apiRouter.get('/search/categories/:slug', async (req, res) => {
   try {
     const { slug } = req.params;
     const { page = 1, limit = 20 } = req.query;
-
-    if (!slug) {
-      return res.status(400).json({
-        success: false,
-        error: "Category slug is required"
-      });
-    }
-
-    console.log(`Performing comprehensive search for category: ${slug}`);
     
-    // Use the new comprehensive search function
-    const result = await db.searchMoviesByCategory(
-      slug,
-      parseInt(page), 
-      parseInt(limit)
-    );
-    
-    // Check if we found any results
-    if (!result.movies || result.movies.length === 0) {
-      return res.status(404).json({
-        success: false,
-        category: slug,
-        error: "No movies found",
-        message: `No movies found matching category: ${slug}`
-      });
+    // Find which category type contains this slug
+    const categoryData = await db.getCategoryBySlug(slug);
+    if (!categoryData) {
+      return res.status(404).json({ error: 'Category not found' });
     }
     
-    // Transform to basic format
-    result.items = result.movies.map(formatBasicMovieData);
-    delete result.movies;
+    const { type } = categoryData;
+    const categoryTag = `${type}@${slug}`;
     
-    res.json({
-      success: true,
-      category: slug,
-      data: result
-    });
+    // Try to find movies by the category tag
+    const movies = await db.searchMoviesByTags([categoryTag], page, limit);
+    
+    // If no movies found with the tag, try the legacy approach
+    if (movies.items.length === 0) {
+      // Fall back to the old approach
+      console.log(`No movies found with tag ${categoryTag}, falling back to legacy search approach`);
+      const categoryMovies = await db.searchMoviesByCategory(slug, page, limit);
+      
+      if (categoryMovies.items.length === 0) {
+        return res.status(404).json({ error: 'No movies found for this category' });
+      }
+      
+      return res.json(categoryMovies);
+    }
+    
+    return res.json(movies);
   } catch (error) {
-    console.error(`Error searching for category ${req.params.slug}:`, error);
-    res.status(500).json({
-      success: false,
-      error: 'Internal server error',
-      message: error.message
-    });
+    console.error('Error searching movies by category:', error);
+    res.status(500).json({ error: 'Failed to search movies by category' });
   }
 });
 

@@ -643,11 +643,12 @@ function closeDatabase() {
   return new Promise((resolve, reject) => {
     db.close(err => {
       if (err) {
-        console.error('Error closing database:', err.message);
-        return reject(err);
+        console.error('Error closing database:', err);
+        reject(err);
+      } else {
+        console.log('Database connection closed');
+        resolve();
       }
-      console.log('Database connection closed');
-      resolve();
     });
   });
 }
@@ -929,18 +930,63 @@ async function getCategorySitemap() {
   }
 }
 
+// Update tags for a specific movie
+async function updateMovieTags(movieId, tags) {
+  return new Promise((resolve, reject) => {
+    try {
+      // Ensure tags is an array
+      if (!Array.isArray(tags)) {
+        if (typeof tags === 'string') {
+          tags = tags.split(',').map(tag => tag.trim());
+        } else {
+          tags = [];
+        }
+      }
+      
+      // Convert tags to JSON string
+      const tagsJson = JSON.stringify(tags);
+      
+      // Update tags and updated_at timestamp
+      db.run(
+        'UPDATE movies SET tags = ?, updated_at = ? WHERE id = ?',
+        [tagsJson, new Date().toISOString(), movieId],
+        function(err) {
+          if (err) {
+            console.error(`Error updating tags for movie ${movieId}:`, err);
+            reject(err);
+            return;
+          }
+          
+          if (this.changes === 0) {
+            console.warn(`No movie found with ID ${movieId}`);
+            resolve(false);
+          } else {
+            console.log(`Updated tags for movie ${movieId}: ${tags.join(', ')}`);
+            resolve(true);
+          }
+        }
+      );
+    } catch (error) {
+      console.error(`Error in updateMovieTags for movie ${movieId}:`, error);
+      reject(error);
+    }
+  });
+}
+
 module.exports = {
+  getDatabase,
   initializeDatabase,
-  closeDatabase,
   saveMovie,
-  getAllMovies,
   getMovieById,
   getMovieByUrl,
+  getAllMovies,
   searchMovies,
-  getMovieCount,
   getMovieStats,
+  getFilters,
   searchMoviesByTags,
   getAllTags,
   saveCategorySitemap,
-  getCategorySitemap
+  getCategorySitemap,
+  updateMovieTags,
+  closeDatabase: closeDatabase
 }; 

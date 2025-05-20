@@ -1,34 +1,32 @@
 @echo off
-echo Building API for Vercel deployment...
+echo Start building...
 
-echo Updating new added movies...
+:: Generate a random number (between 0-32767), you can combine two for a longer number
+set /a RAND1=%RANDOM%
+set /a RAND2=%RANDOM%
+set "RANDOM_ID=update_%RAND1%%RAND2%"
+
+echo Generated ID: %RANDOM_ID%
+
+echo Get Latest Updated movies ...
 node src/cli/update.js
 
-echo Generate local category sitemap...
-node src/cli/generate-category-sitemap.js
+echo Fetch Categories if db have no categories ...
+node src/cli/fetch-categories.js
 
-echo Updating tags in local database...
-node src/cli/tag-category-inserter.js
+echo Update tags in local database...
+node src/cli/generate-categories-tag-fetcher.js
 
-::  Run the database to update local db script first
-echo Exporting database to JSON...
-node src/cli/update.js
+echo Export database to JSON...
+node src/cli/db-to-json.js
 
-:: Run the database export script first
-echo Exporting database to JSON...
-node src\cli\db-to-json.js
-
-:: Run the cross-platform build preparation script
-echo Running build preparation script...
-node scripts\prepare-build.js
-
-echo add to git 
+echo Add to git...
 git add .
 
-echo commit to git 
-git commit -m "update"
+echo Commit to git with ID: %RANDOM_ID%
+git commit -m "%RANDOM_ID%"
 
-echo push to git 
+echo Push to git...
 git push
 
-echo Build complete! 
+echo Build complete!

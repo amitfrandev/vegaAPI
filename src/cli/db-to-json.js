@@ -164,40 +164,48 @@ async function exportData() {
       `, [type]);
       
       if (categoriesOfType.length > 0) {
-        categories.categories[type] = {
-          title: `${type.charAt(0).toUpperCase() + type.slice(1)}`,
-          description: `${type.charAt(0).toUpperCase() + type.slice(1)} categories`,
-          items: [],
-          stats: { total: categoriesOfType.length }
-        };
+        // Each type should have only one row with multiple slugs
+        const categoryData = categoriesOfType[0];
         
-        // Process categories
-        for (const category of categoriesOfType) {
-          if (!category.slug) {
-            console.warn('Skipping category with missing slug:', category);
-            continue;
-          }
-          
-          const categoryName = category.name || 
-            (category.slug ? category.slug.split('-').map(word => 
-              word.charAt(0).toUpperCase() + word.slice(1)
-            ).join(' ') : 'Unknown Category');
-          
-          categories.categories[type].items.push({
-            slug: category.slug,
-            path: `/${type}/${category.slug}`,
-            name: categoryName,
-            isMainCategory: !!category.is_main
-          });
+        // Parse slugs from JSON string
+        let slugs = [];
+        try {
+          slugs = JSON.parse(categoryData.slugs || '[]');
+          console.log(`Successfully parsed ${slugs.length} slugs for type: ${type}`);
+        } catch (error) {
+          console.error(`Error parsing slugs for type ${type}:`, error.message);
+          console.log('Raw slugs value:', categoryData.slugs);
+          slugs = [];
         }
         
-        categories.totalCategories += categoriesOfType.length;
+        categories.categories[type] = {
+          title: categoryData.title || `${type.charAt(0).toUpperCase() + type.slice(1)}`,
+          description: categoryData.description || `${type.charAt(0).toUpperCase() + type.slice(1)} categories`,
+          slugs: slugs
+        };
+        
+        categories.totalCategories += slugs.length;
       }
     }
     
+    // Add stats for categories
+    categories.stats = {
+      total: Object.values(categories.categories).reduce(
+        (sum, category) => sum + category.slugs.length, 0
+      ),
+      byType: {}
+    };
+    
+    // Populate byType stats
+    Object.entries(categories.categories).forEach(([type, data]) => {
+      categories.stats.byType[type] = {
+        total: data.slugs.length
+      };
+    });
+    
     fs.writeFileSync(
       path.join(JSON_OUTPUT_DIR, 'categories.json'), 
-      JSON.stringify(categories)
+      JSON.stringify(categories, null, 2)
     );
     console.log('Categories data exported');
     

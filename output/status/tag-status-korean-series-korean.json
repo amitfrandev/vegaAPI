@@ -1,0 +1,23 @@
+{
+  "timestamp": "2025-05-20T08:26:00.089Z",
+  "category": {
+    "type": "korean-series",
+    "name": "K-Drama",
+    "slug": "korean",
+    "path": "korean-series"
+  },
+  "tag": "korean",
+  "categoryUrl": "korean-series",
+  "processed": 8,
+  "successful": 8,
+  "movieIds": [
+    4726,
+    4526,
+    4584,
+    4271,
+    4521,
+    4624,
+    4543,
+    4525
+  ]
+}

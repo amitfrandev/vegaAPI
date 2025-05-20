@@ -190,8 +190,8 @@ async function processMovie(movieDetails, processedUrls) {
     // Add to processed URLs
     processedUrls.add(normalizedUrl);
     
-    // Use empty tags instead of extracting from movie info
-    // This allows tag-category-inserter.js to handle all tagging
+    // Use empty tags for initial database insertion
+    // Tags will be added by the generate-categories-tag-fetcher.js script later
     movieDetails.tags = [];
     
     // Save movie to database with empty tags

@@ -2,7 +2,6 @@
 console.log('Loading Express app for Vercel deployment');
 
 // Add environment info for debugging
-console.log('NODE_ENV:', process.env.NODE_ENV);
 console.log('Current directory:', process.cwd());
 
 // Import the original serve-api.js but swap the database module
@@ -804,6 +803,69 @@ apiRouter.get('/search/categories/:slug', cacheMiddleware(5 * 60 * 1000), async 
     });
   } catch (error) {
     console.error(`Error searching for category ${req.params.slug}:`, error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * @route   GET /api/categories/:slug
+ * @desc    Find category by slug across all types and return matching movies
+ * @access  Public
+ */
+apiRouter.get('/categories/:slug', cacheMiddleware(10 * 60 * 1000), async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { page = 1, limit = 20 } = req.query;
+    
+    // First, try to find what type this slug belongs to
+    const categories = await db.getCategories();
+    if (!categories || !categories.categories) {
+      return res.status(404).json({
+        success: false,
+        error: 'Categories not found'
+      });
+    }
+
+    // Search for slug in all category types
+    let foundType = null;
+    for (const [type, data] of Object.entries(categories.categories)) {
+      if (data.slugs && data.slugs.includes(slug)) {
+        foundType = type;
+        break;
+      }
+    }
+
+    if (!foundType) {
+      return res.status(404).json({
+        success: false,
+        error: `Category slug '${slug}' not found in any category type`
+      });
+    }
+
+    // Now that we found the type, get movies for this category
+    const result = await db.getMoviesByCategory(foundType, slug, parseInt(page), parseInt(limit));
+    
+    // Transform to basic format (without detailed info)
+    result.items = result.movies.map(formatBasicMovieData);
+    delete result.movies;
+    
+    res.json({
+      success: true,
+      data: {
+        ...result,
+        category: {
+          type: foundType,
+          slug: slug,
+          title: categories.categories[foundType].title
+        }
+      }
+    });
+  } catch (error) {
+    console.error(`Error getting category by slug '${req.params.slug}':`, error);
     res.status(500).json({
       success: false,
       error: 'Internal server error',

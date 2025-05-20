@@ -382,34 +382,9 @@ async function main() {
   } catch (error) {
     console.error('Error:', error.message);
   } finally {
-    // Close database connection
     await db.closeDatabase();
   }
 }
 
-// Extract title from URL
-function extractTitleFromUrl(url) {
-  try {
-    // Use urlUtils to normalize the URL first
-    let urlPath = urlUtils.normalizeUrl(url);
-    
-    // Remove download- prefix if present
-    urlPath = urlPath.replace(/^download-/, '');
-    
-    // Replace hyphens with spaces
-    const title = urlPath.replace(/-/g, ' ');
-    
-    // Clean up: remove quality indicators, years, etc.
-    return title
-      .replace(/\b(480p|720p|1080p|web-?dl|blu-?ray)\b/gi, '') // Remove quality
-      .replace(/\b\d{4}\b/g, '')                               // Remove years
-      .replace(/\b(hindi|english|dubbed|org)\b/gi, '')         // Remove language indicators
-      .replace(/\s+/g, ' ')                                    // Replace multiple spaces with single space
-      .trim();
-  } catch (error) {
-    console.error(`Error extracting title from URL: ${error.message}`);
-    return '';
-  }
-}
 
 main(); 
