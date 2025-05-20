@@ -2167,7 +2167,6 @@ async function fetchNextdriveLinks(url, heading = null) {
       // More precise episode pattern matching
       const episodeMatch = headingText.match(/-\s*:\s*Episodes?\s*:?\s*(\d+)\s*:-/i) || 
                            headingText.match(/Episodes?\s*:?\s*(\d+)/i) ||
-                           headingText.match(/E(\d+):/i) ||
                            headingText.match(/Episode\s+(\d+)/i);
       
       if (episodeMatch) {
@@ -2326,14 +2325,33 @@ async function fetchNextdriveLinks(url, heading = null) {
       // Handle single episode content (non-episodic) or button-based layout
       const buttonTypes = {};
       
+      // Check if the page actually has any episode indicators
+      let hasEpisodeIndicators = false;
+      let episodeNum = null;
+      
+      // Check the page content for any episode mentions
+      const pageText = $('body').text().toLowerCase();
+      const hasEpisodeText = pageText.includes('episode') || 
+                            pageText.includes('episodes') ||
+                            /e\d+/i.test(pageText);
+      
       // Extract episode number from original heading if possible
-      let episodeNum = '1'; // Default episode number (use numeric for better JSON)
       if (heading) {
         const episodeMatch = heading.match(/Episode[s]*[:\s-]+(\d+)/i) ||
                              heading.match(/E(\d+)/i);
         if (episodeMatch) {
           episodeNum = episodeMatch[1];
+          hasEpisodeIndicators = true;
         }
+      }
+      
+      // Only use episode number if we have clear evidence it's episode-based content
+      if (!hasEpisodeIndicators && !hasEpisodeText) {
+        // For content without episode indicators, use a key that won't add "Episode" to labels
+        episodeNum = 'main'; // Use a non-numeric key that indicates it's the main content
+      } else if (episodeNum === null) {
+        // If we detected episodes but couldn't identify a specific number, default to 1
+        episodeNum = '1';
       }
       
       // First look for structured button groups (used in many NextDrive pages)
