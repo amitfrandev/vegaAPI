@@ -8,8 +8,8 @@ set "RANDOM_ID=update_%RAND1%%RAND2%"
 
 echo Generated ID: %RANDOM_ID%
 
-echo Get Latest Updated movies ...
-node src/cli/update.js
+@REM echo Get Latest Updated movies ...
+@REM node src/cli/update.js
 
 echo Fetch Categories if db have no categories ...
 node src/cli/fetch-categories.js
