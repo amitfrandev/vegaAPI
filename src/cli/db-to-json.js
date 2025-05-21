@@ -67,6 +67,8 @@ async function exportData() {
         [moviesPerFile, offset]
       );
       
+
+      
       // Process the data
       const processedMovies = movies.map(movie => ({
         id: movie.id,
@@ -80,6 +82,7 @@ async function exportData() {
       
       // Write to file
       const outputFile = path.join(JSON_OUTPUT_DIR, `movies_${chunk}.json`);
+      
       fs.writeFileSync(outputFile, JSON.stringify(processedMovies));
       console.log(`Wrote ${processedMovies.length} movies to ${outputFile}`);
     }

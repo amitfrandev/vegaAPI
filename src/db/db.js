@@ -119,6 +119,48 @@ async function saveMovie(movie, options = {}) {
 
             // Force full update if requested, otherwise only update if tags changed or forceTagUpdate is true
             if (options.forceUpdate || tagsChanged || options.forceTagUpdate) {
+              // Parse existing info to preserve section IDs
+              let updatedInfo = movie.info;
+              if (options.forceUpdate) {
+                try {
+                  // Get the existing info JSON
+                  const existingInfo = JSON.parse(row.info || "[]");
+                  
+                  // If new movie has sections and existing movie has sections with IDs, preserve the IDs
+                  if (movie.info && movie.info.length > 0 && movie.info[0].sections && 
+                      existingInfo.length > 0 && existingInfo[0].sections) {
+                    
+                    // Create a map of existing sections by heading for quick lookup
+                    const existingSectionsMap = {};
+                    if (existingInfo[0].sections) {
+                      existingInfo[0].sections.forEach(section => {
+                        if (section.heading && section.id) {
+                          existingSectionsMap[section.heading] = section.id;
+                        }
+                      });
+                    }
+                    
+                    // Preserve IDs in the new sections if they match existing ones by heading
+                    if (movie.info[0].sections) {
+                      movie.info[0].sections.forEach(section => {
+                        if (section.heading && existingSectionsMap[section.heading]) {
+                          section.id = existingSectionsMap[section.heading];
+                        } else if (!section.id) {
+                          // If section doesn't have an ID, generate one
+                          section.id = (Date.now() + Math.floor(Math.random() * 1000)).toString();
+                        }
+                      });
+                    }
+                  }
+                  
+                  updatedInfo = movie.info;
+                } catch (error) {
+                  console.error("Error preserving section IDs:", error);
+                  // Continue with the original info
+                  updatedInfo = movie.info;
+                }
+              }
+
               // If full update requested, update all fields
               if (options.forceUpdate) {
                 db.run(
@@ -127,7 +169,7 @@ async function saveMovie(movie, options = {}) {
                     movie.title,
                     movie.thumbnail || row.thumbnail,
                     movie.date || row.date,
-                    JSON.stringify(movie.info),
+                    JSON.stringify(updatedInfo),
                     tagsJson,
                     new Date().toISOString(),
                     row.id,
@@ -150,7 +192,7 @@ async function saveMovie(movie, options = {}) {
                   "UPDATE movies SET title = ?, info = ?, tags = ?, updated_at = ? WHERE id = ?",
                   [
                     movie.title,
-                    JSON.stringify(movie.info),
+                    JSON.stringify(updatedInfo),
                     tagsJson,
                     new Date().toISOString(),
                     row.id,
@@ -179,6 +221,16 @@ async function saveMovie(movie, options = {}) {
             }
           } else {
             // Movie doesn't exist, insert it
+            // For new movies, ensure sections have IDs
+            if (movie.info && movie.info.length > 0 && movie.info[0].sections) {
+              movie.info[0].sections.forEach(section => {
+                if (!section.id) {
+                  // Generate a unique ID for each section
+                  section.id = (Date.now() + Math.floor(Math.random() * 1000)).toString();
+                }
+              });
+            }
+            
             // Store normalized URL in database
             db.run(
               "INSERT INTO movies (url, title, thumbnail, date, info, tags, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
@@ -242,13 +294,25 @@ async function getMovieByUrl(url) {
           }
 
           try {
+            // Parse the info and ensure section IDs are preserved
+            const movieInfo = JSON.parse(movieRow.info || "[]");
+            
+            // Ensure all sections have IDs
+            if (movieInfo.length > 0 && movieInfo[0].sections) {
+              movieInfo[0].sections.forEach(section => {
+                if (!section.id) {
+                  section.id = (Date.now() + Math.floor(Math.random() * 1000)).toString();
+                }
+              });
+            }
+            
             const movie = {
               id: movieRow.id,
               title: movieRow.title,
               url: movieRow.url,
               thumbnail: movieRow.thumbnail,
               date: movieRow.date,
-              info: JSON.parse(movieRow.info),
+              info: movieInfo,
               tags: JSON.parse(movieRow.tags || "[]"),
               created_at: movieRow.created_at,
               updated_at: movieRow.updated_at,
@@ -363,6 +427,7 @@ async function getMovieById(id) {
                       Promise.all(linkGroupPromises)
                         .then((linkGroups) => {
                           resolve({
+                            id: sectionRow.id.toString(), // Ensure ID is returned as string
                             heading: sectionRow.heading || sectionRow.note,
                             links: linkGroups,
                           });
@@ -463,11 +528,25 @@ async function getAllMovies(page = 1, pageSize = 20, options = {}) {
           if (err) return reject(err);
 
           // Process rows to parse JSON fields
-          const processedRows = rows.map((row) => ({
-            ...row,
-            tags: JSON.parse(row.tags || "[]"),
-            info: JSON.parse(row.info || "[]"),
-          }));
+          const processedRows = rows.map((row) => {
+            // Parse and handle info/tags
+            const parsedInfo = JSON.parse(row.info || "[]");
+            
+            // Ensure sections have IDs
+            if (parsedInfo.length > 0 && parsedInfo[0].sections) {
+              parsedInfo[0].sections.forEach(section => {
+                if (!section.id) {
+                  section.id = (Date.now() + Math.floor(Math.random() * 1000)).toString();
+                }
+              });
+            }
+            
+            return {
+              ...row,
+              tags: JSON.parse(row.tags || "[]"),
+              info: parsedInfo,
+            };
+          });
 
           resolve(processedRows);
         }
@@ -635,13 +714,25 @@ async function searchMovies(query, page = 1, limit = 20, filters = {}) {
         // Parse the JSON info string for each movie
         const movies = rows.map((row) => {
           try {
+            // Parse info and ensure section IDs exist
+            const info = JSON.parse(row.info || "[]");
+            
+            // Add IDs to sections if they don't have them
+            if (info.length > 0 && info[0].sections) {
+              info[0].sections.forEach(section => {
+                if (!section.id) {
+                  section.id = (Date.now() + Math.floor(Math.random() * 1000)).toString();
+                }
+              });
+            }
+            
             return {
               id: row.id,
               title: row.title,
               url: row.url,
               thumbnail: row.thumbnail,
               date: row.date,
-              info: JSON.parse(row.info),
+              info: info,
               tags: JSON.parse(row.tags || "[]"),
             };
           } catch (parseError) {
