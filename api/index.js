@@ -520,6 +520,7 @@ apiRouter.get('/search', cacheMiddleware(2 * 60 * 1000), async (req, res) => {
   try {
     const { 
       q, 
+      s, // Accept 's' as an alternative to 'q'
       page = 1, 
       limit = 20, 
       type, 
@@ -529,7 +530,10 @@ apiRouter.get('/search', cacheMiddleware(2 * 60 * 1000), async (req, res) => {
       sort = 'newest'
     } = req.query;
     
-    if (!q) {
+    // Use 's' if 'q' is not provided
+    const searchQuery = q || s;
+    
+    if (!searchQuery) {
       return res.status(400).json({ 
         success: false, 
         error: 'Search query is required' 
@@ -544,7 +548,7 @@ apiRouter.get('/search', cacheMiddleware(2 * 60 * 1000), async (req, res) => {
       sort
     };
     
-    const result = await db.searchMovies(q, parseInt(page), parseInt(limit), filters);
+    const result = await db.searchMovies(searchQuery, parseInt(page), parseInt(limit), filters);
     
     // Transform to basic format (without detailed info)
     result.items = result.movies.map(formatBasicMovieData);
