@@ -1,53 +1,35 @@
 @echo off
-setlocal
+echo Start building...
 
-:: Set working directory to the script's location
-cd /d %~dp0
-
-:: Timestamp for logs and commit message
-for /f %%a in ('powershell -command "Get-Date -Format \"yyyy-MM-dd_HH-mm-ss\""') do set "TIMESTAMP=%%a"
-
-:: Generate a random ID
+:: Generate a random number (between 0-32767), you can combine two for a longer number
 set /a RAND1=%RANDOM%
 set /a RAND2=%RANDOM%
-set "RANDOM_ID=daily_update_%RAND1%%RAND2%_%TIMESTAMP%"
+set "RANDOM_ID=daily_update_%RAND1%%RAND2%"
 
-:: Log file
-set "LOG_FILE=logs\%RANDOM_ID%.log"
-if not exist logs mkdir logs
+echo Generated ID: %RANDOM_ID%
 
-:: Function to print a header message
-call :printHeader "🛠 Starting Build: %RANDOM_ID%"
+@REM echo Get Latest Updated movies ...
+@REM node src/cli/update.js
 
-call :run "Fetching movies..."                 "node src/cli/update.js"
-call :run "Fetching categories if missing..."  "node src/cli/fetch-categories.js"
-call :run "Updating tags in local database..." "node src/cli/generate-categories-tag-fetcher.js"
-call :run "Exporting database to JSON..."      "node src/cli/db-to-json.js"
+echo fetch movies ...
+node src/cli/update.js
 
-call :run "Adding files to git..."             "git add ."
-call :run "Committing to git..."               "git commit -m \"%RANDOM_ID%\""
-call :run "Pushing to git..."                  "git push"
+echo Fetch Categories if db have no categories ...
+node src/cli/fetch-categories.js
 
-call :printHeader "✅ Build Complete!"
+echo Update tags in local database...
+node src/cli/generate-categories-tag-fetcher.js
 
-exit /b
+echo Export database to JSON...
+node src/cli/db-to-json.js
 
-:: ------------ Helper functions ------------
+echo Add to git...
+git add .
 
-:run
-echo.
-echo === %~1
-echo %~2 >> "%LOG_FILE%" 2>&1
-%~2 >> "%LOG_FILE%" 2>&1
-if errorlevel 1 (
-    echo ❌ Failed: %~1 (Check %LOG_FILE%)
-    exit /b 1
-)
-goto :eof
+echo Commit to git with ID: %RANDOM_ID%
+git commit -m "%RANDOM_ID%"
 
-:printHeader
-echo.
-echo ==================================================
-echo %~1
-echo ==================================================
-goto :eof
+echo Push to git...
+git push
+
+echo Build complete!
