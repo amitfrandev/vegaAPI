@@ -12,7 +12,7 @@ echo Generated ID: %RANDOM_ID%
 @REM node src/cli/update.js
 
 echo fetch movies ...
-node src/cli/fetch.js
+node src/cli/update.js
 
 echo Fetch Categories if db have no categories ...
 node src/cli/fetch-categories.js
