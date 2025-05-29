@@ -151,33 +151,29 @@ function applyFilters(movies, filters) {
   return filteredMovies;
 }
 
+function parseIMDBRating(value) {
+  if (!value || typeof value !== 'string') return 0;
+  const match = value.match(/([\d.]+)/); // match "6.3" from "6.3/10" or "6.3"
+  return match ? parseFloat(match[1]) : 0;
+}
+
 // Sort movies based on sort parameter
-function sortMovies(movies, sort = 'newest') {
-  const clonedMovies = [...movies];
-  
-  switch (sort) {
-    case 'newest':
-      return clonedMovies.sort((a, b) => new Date(b.date) - new Date(a.date));
-    case 'oldest':
-      return clonedMovies.sort((a, b) => new Date(a.date) - new Date(b.date));
-    case 'title':
-      return clonedMovies.sort((a, b) => a.title.localeCompare(b.title));
-    case 'rating':
-      return clonedMovies.sort((a, b) => {
-        const ratingA = a.info && a.info.length > 0 ? (a.info[0].rating || 0) : 0;
-        const ratingB = b.info && b.info.length > 0 ? (b.info[0].rating || 0) : 0;
-        return ratingB - ratingA;
+function sortMovies(movies, sortType = 'year_desc') {
+  switch (sortType) {
+    case 'imdb_desc':
+      return movies.sort((a, b) => {
+        const ratingA = parseIMDBRating(a.imdb_rating);
+        const ratingB = parseIMDBRating(b.imdb_rating);
+        return ratingB - ratingA; // descending
       });
     case 'year_desc':
-      return clonedMovies.sort((a, b) => {
-        const yearA = getReleaseYear(a) || 0;
-        const yearB = getReleaseYear(b) || 0;
-        return yearB - yearA;
-      });
+      return movies.sort((a, b) => getReleaseYear(b) - getReleaseYear(a));
+    // ... existing sort types
     default:
-      return clonedMovies;
+      return movies;
   }
 }
+
 
 // Paginate movies
 function paginateMovies(movies, page = 1, limit = MOVIES_PER_PAGE) {
@@ -326,17 +322,24 @@ async function getMovieStats() {
   return cache.stats;
 }
 
+function parseImdbRating(ratingStr) {
+  if (!ratingStr || ratingStr === '-') return 0; // treat "-" as no rating = 0
+  if (ratingStr.includes('/')) {
+    // e.g. "6.3/10" => parseFloat("6.3")
+    return parseFloat(ratingStr.split('/')[0]) || 0;
+  }
+  return parseFloat(ratingStr) || 0;
+}
+
 // Get movies by custom query (featured)
 async function getMoviesByCustomQuery(page = 1, limit = MOVIES_PER_PAGE, options = {}) {
-  // This is just a wrapper around getAllMovies with specific sort options
-  // For featured movies, we want to sort by release year desc first, then by date
   const result = await getAllMovies(page, limit, {
     type: options.type,
-    sort: 'year_desc'
+    sort: 'imdb_desc' // ✅ NEW: sort by IMDB rating descending
   });
-  
   return result;
 }
+
 
 // Get movies by tag
 async function getMoviesByTag(tag, page = 1, limit = MOVIES_PER_PAGE) {

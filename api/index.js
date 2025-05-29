@@ -424,20 +424,15 @@ apiRouter.get('/featured', cacheMiddleware(10 * 60 * 1000), async (req, res) => 
       type
     } = req.query;
     
-    // Custom query for featured movies
     const result = await db.getMoviesByCustomQuery(
       parseInt(page), 
       parseInt(limit), 
       { 
         type,
-        sortField: 'release_year', 
-        sortDirection: 'DESC',
-        secondarySortField: 'date',
-        secondarySortDirection: 'DESC'
+        sort: 'imdb_desc' // ✅ Sort by IMDB rating instead of release_year/date
       }
     );
     
-    // Transform to basic format (without detailed info)
     result.items = result.movies.map(movie => ({
       ...formatBasicMovieData(movie),
       release_year: movie.info && movie.info.length > 0 ? movie.info[0].release_year : null
@@ -457,6 +452,7 @@ apiRouter.get('/featured', cacheMiddleware(10 * 60 * 1000), async (req, res) => 
     });
   }
 });
+
 
 /**
  * @route   GET /api/id/:id
