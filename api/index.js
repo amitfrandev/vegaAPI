@@ -441,24 +441,31 @@ apiRouter.get('/featured', async (req, res) => {
     result.movies.sort((a, b) => {
       const ratingA = parseFloat(a.imdb_rating);
       const ratingB = parseFloat(b.imdb_rating);
-
-      const hasValidRatingA = !isNaN(ratingA);
-      const hasValidRatingB = !isNaN(ratingB);
-
-      if (hasValidRatingA && hasValidRatingB) {
-        return ratingB - ratingA; // IMDb rating descending
-      } else if (hasValidRatingA) {
-        return -1; // a comes first
-      } else if (hasValidRatingB) {
-        return 1; // b comes first
-      } else {
-        // fallback to release_year
-        const yearA = parseInt(a.release_year || 0);
-        const yearB = parseInt(b.release_year || 0);
-        return yearB - yearA;
+      const validA = !isNaN(ratingA);
+      const validB = !isNaN(ratingB);
+    
+      // Case 1: Both have valid ratings
+      if (validA && validB) {
+        if (ratingB !== ratingA) {
+          return ratingB - ratingA; // Sort by IMDb rating descending
+        } else {
+          // Tie-break by release_year descending
+          const yearA = parseInt(a.release_year || 0);
+          const yearB = parseInt(b.release_year || 0);
+          return yearB - yearA;
+        }
       }
+    
+      // Case 2: Only one has valid rating
+      if (validA) return -1;
+      if (validB) return 1;
+    
+      // Case 3: Neither has valid rating — sort by release_year
+      const yearA = parseInt(a.release_year || 0);
+      const yearB = parseInt(b.release_year || 0);
+      return yearB - yearA;
     });
-
+    
     // Transform to basic format (without detailed info)
     result.items = result.movies.map(movie => ({
       ...formatBasicMovieData(movie),
