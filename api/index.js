@@ -429,7 +429,7 @@ apiRouter.get('/featured', cacheMiddleware(10 * 60 * 1000), async (req, res) => 
       parseInt(limit), 
       { 
         type,
-        sort: 'imdb_desc' // ✅ Sort by IMDB rating instead of release_year/date
+        sort: 'release_imdb_desc'
       }
     );
     

@@ -177,6 +177,23 @@ function sortMovies(movies, sortType = 'year_desc') {
         return yearB - yearA;
       });
 
+      case 'release_imdb_desc':
+  return movies.sort((a, b) => {
+    const getYear = (movie) => parseInt(getReleaseYear(movie)) || 0;
+
+    const getRating = (movie) => {
+      const raw = movie.info?.[0]?.imdb_rating || '';
+      const cleaned = parseFloat(raw.split('/')[0]);
+      return isNaN(cleaned) ? 0 : cleaned;
+    };
+
+    const yearDiff = getYear(b) - getYear(a);
+    if (yearDiff !== 0) return yearDiff;
+
+    // Same year → sort by IMDB
+    return getRating(b) - getRating(a);
+  });
+
     default:
       return movies;
   }
