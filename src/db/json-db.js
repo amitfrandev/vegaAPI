@@ -158,46 +158,34 @@ function parseIMDBRating(value) {
 }
 
 // Sort movies based on sort parameter
-function sortMovies(movies, sortType = 'year_desc') {
+function sortMovies(movies, sortType = 'newest') {
   switch (sortType) {
+    case 'year_desc':
+      return movies.sort((a, b) => getYear(b) - getYear(a));
     case 'imdb_desc':
+      return movies.sort((a, b) => getRating(b) - getRating(a));
+    case 'release_imdb_desc':
       return movies.sort((a, b) => {
-        const getRating = (movie) => {
-          const raw = movie.info?.[0]?.imdb_rating || '';
-          const cleaned = parseFloat(raw.split('/')[0]); // handles "6.3/10"
-          return isNaN(cleaned) ? 0 : cleaned;
-        };
+        const yearDiff = getYear(b) - getYear(a);
+        if (yearDiff !== 0) return yearDiff;
         return getRating(b) - getRating(a);
       });
-
-    case 'year_desc':
-      return movies.sort((a, b) => {
-        const yearA = parseInt(getReleaseYear(a)) || 0;
-        const yearB = parseInt(getReleaseYear(b)) || 0;
-        return yearB - yearA;
-      });
-
-      case 'release_imdb_desc':
-  return movies.sort((a, b) => {
-    const getYear = (movie) => parseInt(getReleaseYear(movie)) || 0;
-
-    const getRating = (movie) => {
-      const raw = movie.info?.[0]?.imdb_rating || '';
-      const cleaned = parseFloat(raw.split('/')[0]);
-      return isNaN(cleaned) ? 0 : cleaned;
-    };
-
-    const yearDiff = getYear(b) - getYear(a);
-    if (yearDiff !== 0) return yearDiff;
-
-    // Same year → sort by IMDB
-    return getRating(b) - getRating(a);
-  });
-
+    case 'newest':
     default:
-      return movies;
+      return movies.sort((a, b) => new Date(b.date) - new Date(a.date));
   }
 }
+
+function getYear(movie) {
+  return parseInt(getReleaseYear(movie)) || 0;
+}
+
+function getRating(movie) {
+  const raw = movie.info?.[0]?.imdb_rating || '';
+  const cleaned = parseFloat(raw.split('/')[0]);
+  return isNaN(cleaned) ? 0 : cleaned;
+}
+
 
 
 // Paginate movies
@@ -360,10 +348,12 @@ function parseImdbRating(ratingStr) {
 async function getMoviesByCustomQuery(page = 1, limit = MOVIES_PER_PAGE, options = {}) {
   const result = await getAllMovies(page, limit, {
     type: options.type,
-    sort: 'imdb_desc' // ✅ NEW: sort by IMDB rating descending
+    sort: 'release_imdb_desc' // Special sort only for featured
   });
+  
   return result;
 }
+
 
 
 // Get movies by tag
