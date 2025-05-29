@@ -423,55 +423,65 @@ apiRouter.get('/featured', cacheMiddleware(10 * 60 * 1000), async (req, res) => 
       limit = 20,
       type
     } = req.query;
-    
-    // Fetch all movies without sorting by imdb_rating (let DB sort by release_year as backup)
-    const result = await db.getMoviesByCustomQuery(
-      parseInt(page), 
-      parseInt(limit), 
+
+    // Step 1: Get all movies matching type without sorting first
+    const allMovies = await db.getMoviesByCustomQuery(
+      1,  // Get all to filter & sort manually, or if your DB supports filters + sort on imdb_rating, use that
+      1000, // get a large number or you may want to implement pagination after filtering
       { 
         type,
-        sortField: 'release_year', 
-        sortDirection: 'DESC',
-        secondarySortField: 'date',
-        secondarySortDirection: 'DESC'
       }
     );
-    
-    // Helper: parse imdb_rating string to number, ignoring "-"
-    function parseImdbRating(rating) {
-      if (!rating || rating === '-') return null;
-      // rating might be "5.2/10" or "6.3"
-      if (rating.includes('/')) {
-        return parseFloat(rating.split('/')[0]);
+
+    // Step 2: Filter out movies where imdb_rating is '-' or missing
+    const filteredMovies = allMovies.movies.filter(movie => {
+      if (!movie.imdb_rating) return false;            // no rating at all
+      if (movie.imdb_rating === '-') return false;     // rating is "-"
+      return true;
+    });
+
+    // Step 3: Parse imdb_rating to a number, handling cases like "5.4", "5.4/10", etc.
+    filteredMovies.forEach(movie => {
+      let ratingStr = movie.imdb_rating;
+      // If rating has "/10", take the part before "/"
+      if (ratingStr.includes('/')) {
+        ratingStr = ratingStr.split('/')[0];
       }
-      return parseFloat(rating);
-    }
-    
-    // Filter out movies without valid imdb_rating and sort descending by imdb_rating
-    const filteredSortedMovies = result.movies
-      .filter(m => {
-        const rating = parseImdbRating(m.imdb_rating);
-        return rating !== null && !isNaN(rating);
-      })
-      .sort((a, b) => {
-        const aRating = parseImdbRating(a.imdb_rating);
-        const bRating = parseImdbRating(b.imdb_rating);
-        return bRating - aRating;
-      });
-    
-    // Keep pagination limits if needed (since you fetch limited data, you can skip or reapply pagination)
-    const pagedMovies = filteredSortedMovies.slice(0, parseInt(limit));
-    
-    result.items = pagedMovies.map(movie => ({
+      movie.parsedImdbRating = parseFloat(ratingStr) || 0;
+    });
+
+    // Step 4: Sort by parsedImdbRating DESC, then by release_year DESC (newest first)
+    filteredMovies.sort((a, b) => {
+      if (b.parsedImdbRating !== a.parsedImdbRating) {
+        return b.parsedImdbRating - a.parsedImdbRating;
+      }
+      // fallback sort by release_year, descending
+      const aYear = a.info && a.info.length > 0 ? a.info[0].release_year : 0;
+      const bYear = b.info && b.info.length > 0 ? b.info[0].release_year : 0;
+      return bYear - aYear;
+    });
+
+    // Step 5: Implement pagination on the filtered/sorted array
+    const startIndex = (parseInt(page) - 1) * parseInt(limit);
+    const paginatedMovies = filteredMovies.slice(startIndex, startIndex + parseInt(limit));
+
+    // Step 6: Format movies for output
+    const items = paginatedMovies.map(movie => ({
       ...formatBasicMovieData(movie),
-      release_year: movie.info && movie.info.length > 0 ? movie.info[0].release_year : null
+      release_year: movie.info && movie.info.length > 0 ? movie.info[0].release_year : null,
+      imdb_rating: movie.imdb_rating
     }));
-    delete result.movies;
-    
+
     res.json({
       success: true,
-      data: result
+      data: {
+        items,
+        total: filteredMovies.length,
+        page: parseInt(page),
+        limit: parseInt(limit)
+      }
     });
+
   } catch (error) {
     console.error('Error getting featured movies:', error);
     res.status(500).json({ 
