@@ -439,32 +439,36 @@ apiRouter.get('/featured', async (req, res) => {
 
     // Sort by IMDb rating descending (fallback: release_year)
     result.movies.sort((a, b) => {
-      const ratingA = parseFloat(a.imdb_rating);
-      const ratingB = parseFloat(b.imdb_rating);
-      const validA = !isNaN(ratingA);
-      const validB = !isNaN(ratingB);
+      const getRating = (val) => {
+        const parsed = parseFloat(val);
+        return isNaN(parsed) ? null : parsed;
+      };
     
-      // Case 1: Both have valid ratings
-      if (validA && validB) {
-        if (ratingB !== ratingA) {
-          return ratingB - ratingA; // Sort by IMDb rating descending
-        } else {
-          // Tie-break by release_year descending
-          const yearA = parseInt(a.release_year || 0);
-          const yearB = parseInt(b.release_year || 0);
-          return yearB - yearA;
-        }
+      const ratingA = getRating(a.imdb_rating);
+      const ratingB = getRating(b.imdb_rating);
+    
+      // Both have valid ratings
+      if (ratingA !== null && ratingB !== null) {
+        if (ratingB !== ratingA) return ratingB - ratingA;
+    
+        // Tie-break: release year descending
+        const yearA = parseInt(a.release_year || 0);
+        const yearB = parseInt(b.release_year || 0);
+        return yearB - yearA;
       }
     
-      // Case 2: Only one has valid rating
-      if (validA) return -1;
-      if (validB) return 1;
+      // Only A has valid rating → A comes first
+      if (ratingA !== null) return -1;
     
-      // Case 3: Neither has valid rating — sort by release_year
+      // Only B has valid rating → B comes first
+      if (ratingB !== null) return 1;
+    
+      // Neither has valid rating → sort by release year
       const yearA = parseInt(a.release_year || 0);
       const yearB = parseInt(b.release_year || 0);
       return yearB - yearA;
     });
+    
     
     // Transform to basic format (without detailed info)
     result.items = result.movies.map(movie => ({
