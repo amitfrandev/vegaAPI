@@ -162,13 +162,21 @@ function sortMovies(movies, sortType = 'year_desc') {
   switch (sortType) {
     case 'imdb_desc':
       return movies.sort((a, b) => {
-        const ratingA = parseIMDBRating(a.imdb_rating);
-        const ratingB = parseIMDBRating(b.imdb_rating);
-        return ratingB - ratingA; // descending
+        const getRating = (movie) => {
+          const raw = movie.info?.[0]?.imdb_rating || '';
+          const cleaned = parseFloat(raw.split('/')[0]); // handles "6.3/10"
+          return isNaN(cleaned) ? 0 : cleaned;
+        };
+        return getRating(b) - getRating(a);
       });
+
     case 'year_desc':
-      return movies.sort((a, b) => getReleaseYear(b) - getReleaseYear(a));
-    // ... existing sort types
+      return movies.sort((a, b) => {
+        const yearA = parseInt(getReleaseYear(a)) || 0;
+        const yearB = parseInt(getReleaseYear(b)) || 0;
+        return yearB - yearA;
+      });
+
     default:
       return movies;
   }
