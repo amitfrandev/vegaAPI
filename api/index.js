@@ -416,7 +416,7 @@ apiRouter.get('/url/:url', cacheMiddleware(30 * 60 * 1000), async (req, res) => 
  * @desc    Get featured movies sorted by both post date and release year in descending order
  * @access  Public
  */
-apiRouter.get('/featured', cacheMiddleware(10 * 60 * 1000), async (req, res) => {
+apiRouter.get('/featured', async (req, res) => {
   try {
     const { 
       page = 1, 
@@ -424,7 +424,7 @@ apiRouter.get('/featured', cacheMiddleware(10 * 60 * 1000), async (req, res) => 
       type
     } = req.query;
     
-    // Custom query for featured movies
+    // Fetch the raw movie list (unsorted)
     const result = await db.getMoviesByCustomQuery(
       parseInt(page), 
       parseInt(limit), 
@@ -436,14 +436,36 @@ apiRouter.get('/featured', cacheMiddleware(10 * 60 * 1000), async (req, res) => 
         secondarySortDirection: 'DESC'
       }
     );
-    
+
+    // Sort by IMDb rating descending (fallback: release_year)
+    result.movies.sort((a, b) => {
+      const ratingA = parseFloat(a.imdb_rating);
+      const ratingB = parseFloat(b.imdb_rating);
+
+      const hasValidRatingA = !isNaN(ratingA);
+      const hasValidRatingB = !isNaN(ratingB);
+
+      if (hasValidRatingA && hasValidRatingB) {
+        return ratingB - ratingA; // IMDb rating descending
+      } else if (hasValidRatingA) {
+        return -1; // a comes first
+      } else if (hasValidRatingB) {
+        return 1; // b comes first
+      } else {
+        // fallback to release_year
+        const yearA = parseInt(a.release_year || 0);
+        const yearB = parseInt(b.release_year || 0);
+        return yearB - yearA;
+      }
+    });
+
     // Transform to basic format (without detailed info)
     result.items = result.movies.map(movie => ({
       ...formatBasicMovieData(movie),
       release_year: movie.info && movie.info.length > 0 ? movie.info[0].release_year : null
     }));
     delete result.movies;
-    
+
     res.json({
       success: true,
       data: result
@@ -457,6 +479,7 @@ apiRouter.get('/featured', cacheMiddleware(10 * 60 * 1000), async (req, res) => 
     });
   }
 });
+
 
 /**
  * @route   GET /api/id/:id
