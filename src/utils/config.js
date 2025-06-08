@@ -1,8 +1,7 @@
 require('dotenv').config();
 const path = require('path');
 
-
-const maindoamin = 'app.vegamovies.bot';
+const maindoamin = 'vegamovies.yoga';
 const mainUrl = `https://${maindoamin}`;
 // Get the domain from API_URL or use default
 const getDomain = () => {
