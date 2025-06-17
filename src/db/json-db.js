@@ -170,6 +170,14 @@ function sortMovies(movies, sortType = 'newest') {
         if (yearDiff !== 0) return yearDiff;
         return getRating(b) - getRating(a);
       });
+    case 'featured':
+      // New featured sorting: IMDb rating descending, then release date descending
+      return movies.sort((a, b) => {
+        const ratingDiff = getRating(b) - getRating(a);
+        if (ratingDiff !== 0) return ratingDiff;
+        // If ratings are equal, sort by release date descending (newer first)
+        return getYear(b) - getYear(a);
+      });
     case 'newest':
     default:
       return movies.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -351,7 +359,7 @@ async function getMoviesByCustomQuery(page = 1, limit = MOVIES_PER_PAGE, options
     throw new Error('Failed to load manifest');
   }
   
-  // We need to load all chunks when filtering
+  // We need to load all chunks to apply the 6-month filter
   const allMovies = [];
   for (let i = 0; i < cache.manifest.moviesChunks; i++) {
     const chunk = getMoviesChunk(i);
@@ -360,33 +368,26 @@ async function getMoviesByCustomQuery(page = 1, limit = MOVIES_PER_PAGE, options
     }
   }
   
-  // Calculate date 6 months ago from now
+  // Filter by last 6 months (based on post date)
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
   
-  // Filter movies from last 6 months and with IMDB rating >= 6.0
-  const recentHighRatedMovies = allMovies.filter(movie => {
-    // Check if movie is from last 6 months
+  const recentMovies = allMovies.filter(movie => {
     const movieDate = new Date(movie.date);
-    const isRecent = movieDate >= sixMonthsAgo;
-    
-    // Check if movie has good IMDB rating (>= 6.0)
-    const imdbRating = getRating(movie);
-    const hasGoodRating = imdbRating >= 6.0;
-    
-    return isRecent && hasGoodRating;
+    return movieDate >= sixMonthsAgo;
   });
   
   // Apply type filter if specified
-  let filteredMovies = recentHighRatedMovies;
+  let filteredMovies = recentMovies;
   if (options.type && options.type !== 'all') {
-    filteredMovies = filteredMovies.filter(movie => 
-      getMovieType(movie) === options.type
-    );
+    filteredMovies = recentMovies.filter(movie => {
+      const movieType = getMovieType(movie);
+      return movieType === options.type;
+    });
   }
   
-  // Sort by release year (descending) then by IMDB rating (descending)
-  const sortedMovies = sortMovies(filteredMovies, 'release_imdb_desc');
+  // Sort using the new featured sorting
+  const sortedMovies = sortMovies(filteredMovies, 'featured');
   
   // Apply pagination
   const paginatedMovies = paginateMovies(sortedMovies, page, limit);

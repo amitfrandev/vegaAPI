@@ -293,7 +293,7 @@ apiRouter.get('/url/:url', async (req, res) => {
 
 /**
  * @route   GET /api/featured
- * @desc    Get featured movies from last 6 months with IMDB rating >= 6.0, sorted by release year and rating
+ * @desc    Get featured movies sorted by both post date and release year in descending order
  * @access  Public
  */
 apiRouter.get('/featured', async (req, res) => {
@@ -309,7 +309,11 @@ apiRouter.get('/featured', async (req, res) => {
       parseInt(page), 
       parseInt(limit), 
       { 
-        type
+        type,
+        sortField: 'release_year', 
+        sortDirection: 'DESC',
+        secondarySortField: 'date',
+        secondarySortDirection: 'DESC'
       }
     );
     
@@ -709,7 +713,7 @@ app.get('/', (req, res) => {
       <li>GET /api/search?q=query - Search for movies/series</li>
       <li>GET /api/filters - Get available filter options</li>
       <li>GET /api/stats - Get database statistics</li>
-      <li>GET /api/featured - Get featured movies from last 6 months with IMDB rating >= 6.0, sorted by release year and rating</li>
+      <li>GET /api/featured - Get featured movies sorted by both post date and release year in descending order</li>
       <li>GET /api/tags/:tag - Get movies filtered by specific tag</li>
       <li>GET /api/categories - Get all categories organized by type</li>
       <li>GET /api/categories/:type - Get categories of a specific type</li>
@@ -745,7 +749,7 @@ async function startServer() {
       console.log('  GET /api/search?q=query - Search for movies/series');
       console.log('  GET /api/filters - Get available filter options');
       console.log('  GET /api/stats - Get database statistics');
-      console.log('  GET /api/featured - Get featured movies from last 6 months with IMDB rating >= 6.0, sorted by release year and rating');
+      console.log('  GET /api/featured - Get featured movies sorted by both post date and release year in descending order');
       console.log('  GET /api/tags/:tag - Get movies filtered by specific tag');
       console.log('  GET /api/categories - Get all categories organized by type');
       console.log('  GET /api/categories/:type - Get categories of a specific type');
