@@ -43,22 +43,4 @@ src/analysis/
 src/scripts/
 
 # DO NOT ignore these important files
-!output/db/movies.db
-
-# Exclude large image directories from function bundle
-api/data/img-source/
-api/data/img-source/chunk*/
-api/data/img-source/chunk*/*.jpg
-api/data/img-source/chunk*/*.jpeg
-api/data/img-source/chunk*/*.png
-api/data/img-source/chunk*/*.webp
-api/data/img-source/chunk*/*.gif
-api/data/img-source/chunk*/*.txt
-
-# Exclude other large directories
-.git/
-.gitignore
-README.md
-*.log
-*.sqlite
-*.db 
+!output/db/movies.db 

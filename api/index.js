@@ -192,51 +192,6 @@ app.use(express.json());
 app.use(userAgentMiddleware);
 app.use(rateLimitMiddleware);
 
-// Serve static images from public/data/img-source/ (for Vercel deployment)
-app.use('/data/img-source', express.static(path.join(process.cwd(), 'public', 'data', 'img-source'), {
-  maxAge: '1d', // Cache images for 1 day
-  etag: true,
-  lastModified: true,
-  setHeaders: (res, path) => {
-    // Set appropriate content type based on file extension
-    const ext = path.extname(path).toLowerCase();
-    if (ext === '.jpg' || ext === '.jpeg') {
-      res.setHeader('Content-Type', 'image/jpeg');
-    } else if (ext === '.png') {
-      res.setHeader('Content-Type', 'image/png');
-    } else if (ext === '.webp') {
-      res.setHeader('Content-Type', 'image/webp');
-    } else if (ext === '.gif') {
-      res.setHeader('Content-Type', 'image/gif');
-    }
-    
-    // Set cache headers for images
-    res.setHeader('Cache-Control', 'public, max-age=86400'); // 1 day
-    res.setHeader('Access-Control-Allow-Origin', '*');
-  }
-}));
-
-// Fallback: Also serve from api/data/img-source/ for local development
-app.use('/api-data/img-source', express.static(path.join(process.cwd(), 'api', 'data', 'img-source'), {
-  maxAge: '1d',
-  etag: true,
-  lastModified: true,
-  setHeaders: (res, path) => {
-    const ext = path.extname(path).toLowerCase();
-    if (ext === '.jpg' || ext === '.jpeg') {
-      res.setHeader('Content-Type', 'image/jpeg');
-    } else if (ext === '.png') {
-      res.setHeader('Content-Type', 'image/png');
-    } else if (ext === '.webp') {
-      res.setHeader('Content-Type', 'image/webp');
-    } else if (ext === '.gif') {
-      res.setHeader('Content-Type', 'image/gif');
-    }
-    res.setHeader('Cache-Control', 'public, max-age=86400');
-    res.setHeader('Access-Control-Allow-Origin', '*');
-  }
-}));
-
 // Read-only API middleware - reject any non-GET requests
 app.use((req, res, next) => {
   if (req.method !== 'GET') {
@@ -919,179 +874,6 @@ apiRouter.get('/categories/:slug', cacheMiddleware(10 * 60 * 1000), async (req, 
   }
 });
 
-/**
- * @route   GET /api/images/check/:filename
- * @desc    Check if a specific image exists in the img-source directory
- * @access  Public
- */
-apiRouter.get('/images/check/:filename', async (req, res) => {
-  try {
-    const filename = req.params.filename;
-    
-    // Check in both public and api/data directories
-    const publicImgSourceDir = path.join(process.cwd(), 'public', 'data', 'img-source');
-    const apiImgSourceDir = path.join(process.cwd(), 'api', 'data', 'img-source');
-    
-    let foundPath = null;
-    let chunkNumber = null;
-    let source = null;
-    
-    // Look through chunk directories in public folder first (for Vercel)
-    for (let i = 1; i <= 50; i++) {
-      const chunkDir = path.join(publicImgSourceDir, `chunk${i}`);
-      const imagePath = path.join(chunkDir, filename);
-      
-      if (fs.existsSync(imagePath)) {
-        foundPath = imagePath;
-        chunkNumber = i;
-        source = 'public';
-        break;
-      }
-    }
-    
-    // If not found in public, check api/data folder (for local development)
-    if (!foundPath) {
-      for (let i = 1; i <= 50; i++) {
-        const chunkDir = path.join(apiImgSourceDir, `chunk${i}`);
-        const imagePath = path.join(chunkDir, filename);
-        
-        if (fs.existsSync(imagePath)) {
-          foundPath = imagePath;
-          chunkNumber = i;
-          source = 'api-data';
-          break;
-        }
-      }
-    }
-    
-    if (foundPath) {
-      const stats = fs.statSync(foundPath);
-      const urlPath = source === 'public' 
-        ? `/data/img-source/chunk${chunkNumber}/${filename}`
-        : `/api-data/img-source/chunk${chunkNumber}/${filename}`;
-        
-      res.json({
-        success: true,
-        data: {
-          filename,
-          exists: true,
-          chunk: chunkNumber,
-          source: source,
-          path: urlPath,
-          size: stats.size,
-          lastModified: stats.mtime
-        }
-      });
-    } else {
-      res.json({
-        success: true,
-        data: {
-          filename,
-          exists: false,
-          message: 'Image not found in any chunk directory'
-        }
-      });
-    }
-  } catch (error) {
-    console.error('Error checking image:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Internal server error',
-      message: error.message
-    });
-  }
-});
-
-/**
- * @route   GET /api/images/stats
- * @desc    Get statistics about downloaded images
- * @access  Public
- */
-apiRouter.get('/images/stats', cacheMiddleware(60 * 60 * 1000), async (req, res) => {
-  try {
-    const publicImgSourceDir = path.join(process.cwd(), 'public', 'data', 'img-source');
-    const apiImgSourceDir = path.join(process.cwd(), 'api', 'data', 'img-source');
-    
-    let totalImages = 0;
-    let totalSize = 0;
-    let chunks = 0;
-    const chunkStats = {};
-    
-    // Function to process directory
-    function processDirectory(dirPath, source) {
-      if (!fs.existsSync(dirPath)) {
-        return;
-      }
-      
-      const items = fs.readdirSync(dirPath);
-      
-      for (const item of items) {
-        if (item.startsWith('chunk')) {
-          const chunkDir = path.join(dirPath, item);
-          const chunkNumber = item.replace('chunk', '');
-          
-          if (fs.statSync(chunkDir).isDirectory()) {
-            if (!chunkStats[chunkNumber]) {
-              chunkStats[chunkNumber] = { images: 0, size: 0, sizeMB: 0, sources: [] };
-            }
-            
-            const files = fs.readdirSync(chunkDir);
-            let chunkImages = 0;
-            let chunkSize = 0;
-            
-            for (const file of files) {
-              const filePath = path.join(chunkDir, file);
-              const stats = fs.statSync(filePath);
-              
-              // Only count image files (not .txt files)
-              if (['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(path.extname(file).toLowerCase())) {
-                chunkImages++;
-                chunkSize += stats.size;
-                totalImages++;
-                totalSize += stats.size;
-              }
-            }
-            
-            chunkStats[chunkNumber].images += chunkImages;
-            chunkStats[chunkNumber].size += chunkSize;
-            chunkStats[chunkNumber].sizeMB = Math.round(chunkStats[chunkNumber].size / (1024 * 1024) * 100) / 100;
-            chunkStats[chunkNumber].sources.push(source);
-          }
-        }
-      }
-    }
-    
-    // Process both directories
-    processDirectory(publicImgSourceDir, 'public');
-    processDirectory(apiImgSourceDir, 'api-data');
-    
-    // Count total chunks
-    chunks = Object.keys(chunkStats).length;
-    
-    res.json({
-      success: true,
-      data: {
-        totalImages,
-        totalSize,
-        totalSizeMB: Math.round(totalSize / (1024 * 1024) * 100) / 100,
-        chunks,
-        chunkStats,
-        sources: {
-          public: fs.existsSync(publicImgSourceDir),
-          apiData: fs.existsSync(apiImgSourceDir)
-        }
-      }
-    });
-  } catch (error) {
-    console.error('Error getting image stats:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Internal server error',
-      message: error.message
-    });
-  }
-});
-
 // Register the API router
 app.use('/api', apiRouter);
 
@@ -1111,15 +893,8 @@ app.get('/api/docs', (req, res) => {
     data: {
       apiName: "Vega Movies API",
       version: "1.0.0",
-      description: "Read-only API for accessing movie and series data with image serving capabilities",
+      description: "Read-only API for accessing movie and series data",
       basePath: "/api",
-      imageServing: {
-        description: "Images are served from /data/img-source/ directory",
-        baseUrl: "/data/img-source/chunk{number}/{filename}",
-        example: "/data/img-source/chunk1/The_Devil_Wears_Prada_10073.jpg",
-        supportedFormats: ["jpg", "jpeg", "png", "webp", "gif"],
-        caching: "Images are cached for 1 day"
-      },
       endpoints: [
         { path: "/all", method: "GET", description: "Get paginated list of movies/series (basic info)" },
         { path: "/type/:type", method: "GET", description: "Get movies or series specifically (type must be 'movie' or 'series')" },
@@ -1134,8 +909,6 @@ app.get('/api/docs', (req, res) => {
         { path: "/categories/:type", method: "GET", description: "Get categories of a specific type" },
         { path: "/categories/:type/:slug", method: "GET", description: "Get movies for a specific category" },
         { path: "/search/categories/:slug", method: "GET", description: "Search for a category across all fields" },
-        { path: "/images/check/:filename", method: "GET", description: "Check if a specific image exists and get its location" },
-        { path: "/images/stats", method: "GET", description: "Get statistics about downloaded images" },
         { path: "/docs", method: "GET", description: "API documentation" }
       ],
       commonParameters: [
