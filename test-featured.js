@@ -38,16 +38,16 @@ function testFeaturedAPI() {
             });
           }
           
-          // Check if movies are from last 3 months
-          const threeMonthsAgo = new Date();
-          threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+          // Check if movies are from last 6 months
+          const sixMonthsAgo = new Date();
+          sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
           
           const recentMovies = response.data.items.filter(movie => {
             const movieDate = new Date(movie.date);
-            return movieDate >= threeMonthsAgo;
+            return movieDate >= sixMonthsAgo;
           });
           
-          console.log(`\n📅 Movies from last 3 months: ${recentMovies.length}/${response.data.items.length}`);
+          console.log(`\n📅 Movies from last 6 months: ${recentMovies.length}/${response.data.items.length}`);
           
           // Check IMDB ratings
           const highRatedMovies = response.data.items.filter(movie => {

@@ -360,15 +360,15 @@ async function getMoviesByCustomQuery(page = 1, limit = MOVIES_PER_PAGE, options
     }
   }
   
-  // Calculate date 3 months ago from now
-  const threeMonthsAgo = new Date();
-  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+  // Calculate date 6 months ago from now
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
   
-  // Filter movies from last 3 months and with IMDB rating >= 6.0
+  // Filter movies from last 6 months and with IMDB rating >= 6.0
   const recentHighRatedMovies = allMovies.filter(movie => {
-    // Check if movie is from last 3 months
+    // Check if movie is from last 6 months
     const movieDate = new Date(movie.date);
-    const isRecent = movieDate >= threeMonthsAgo;
+    const isRecent = movieDate >= sixMonthsAgo;
     
     // Check if movie has good IMDB rating (>= 6.0)
     const imdbRating = getRating(movie);

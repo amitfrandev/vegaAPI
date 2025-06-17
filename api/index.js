@@ -413,7 +413,7 @@ apiRouter.get('/url/:url', cacheMiddleware(30 * 60 * 1000), async (req, res) => 
 
 /**
  * @route   GET /api/featured
- * @desc    Get featured movies from last 3 months with IMDB rating >= 6.0, sorted by release year and rating
+ * @desc    Get featured movies from last 6 months with IMDB rating >= 6.0, sorted by release year and rating
  * @access  Public
  */
 apiRouter.get('/featured', cacheMiddleware(10 * 60 * 1000), async (req, res) => {
@@ -901,7 +901,7 @@ app.get('/api/docs', (req, res) => {
         { path: "/search", method: "GET", description: "Search for movies/series" },
         { path: "/filters", method: "GET", description: "Get available filter options" },
         { path: "/stats", method: "GET", description: "Get database statistics" },
-        { path: "/featured", method: "GET", description: "Get featured movies from last 3 months with IMDB rating >= 6.0, sorted by release year and rating" },
+        { path: "/featured", method: "GET", description: "Get featured movies from last 6 months with IMDB rating >= 6.0, sorted by release year and rating" },
         { path: "/tags/:tag", method: "GET", description: "Get movies filtered by specific tag" },
         { path: "/categories", method: "GET", description: "Get all categories organized by type" },
         { path: "/categories/:type", method: "GET", description: "Get categories of a specific type" },
@@ -937,7 +937,7 @@ app.get('/', (req, res) => {
       <li>GET /api/search?q=query - Search for movies/series</li>
       <li>GET /api/filters - Get available filter options</li>
       <li>GET /api/stats - Get database statistics</li>
-      <li>GET /api/featured - Get featured movies from last 3 months with IMDB rating >= 6.0, sorted by release year and rating</li>
+      <li>GET /api/featured - Get featured movies from last 6 months with IMDB rating >= 6.0, sorted by release year and rating</li>
       <li>GET /api/tags/:tag - Get movies filtered by specific tag</li>
       <li>GET /api/categories - Get all categories organized by type</li>
       <li>GET /api/categories/:type - Get categories of a specific type</li>
