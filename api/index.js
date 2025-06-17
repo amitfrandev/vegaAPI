@@ -192,8 +192,8 @@ app.use(express.json());
 app.use(userAgentMiddleware);
 app.use(rateLimitMiddleware);
 
-// Serve static images from api/data/img-source/
-app.use('/data/img-source', express.static(path.join(process.cwd(), 'api', 'data', 'img-source'), {
+// Serve static images from public/data/img-source/ (for Vercel deployment)
+app.use('/data/img-source', express.static(path.join(process.cwd(), 'public', 'data', 'img-source'), {
   maxAge: '1d', // Cache images for 1 day
   etag: true,
   lastModified: true,
@@ -212,6 +212,27 @@ app.use('/data/img-source', express.static(path.join(process.cwd(), 'api', 'data
     
     // Set cache headers for images
     res.setHeader('Cache-Control', 'public, max-age=86400'); // 1 day
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+}));
+
+// Fallback: Also serve from api/data/img-source/ for local development
+app.use('/api-data/img-source', express.static(path.join(process.cwd(), 'api', 'data', 'img-source'), {
+  maxAge: '1d',
+  etag: true,
+  lastModified: true,
+  setHeaders: (res, path) => {
+    const ext = path.extname(path).toLowerCase();
+    if (ext === '.jpg' || ext === '.jpeg') {
+      res.setHeader('Content-Type', 'image/jpeg');
+    } else if (ext === '.png') {
+      res.setHeader('Content-Type', 'image/png');
+    } else if (ext === '.webp') {
+      res.setHeader('Content-Type', 'image/webp');
+    } else if (ext === '.gif') {
+      res.setHeader('Content-Type', 'image/gif');
+    }
+    res.setHeader('Cache-Control', 'public, max-age=86400');
     res.setHeader('Access-Control-Allow-Origin', '*');
   }
 }));
@@ -907,32 +928,56 @@ apiRouter.get('/images/check/:filename', async (req, res) => {
   try {
     const filename = req.params.filename;
     
-    // Check in all chunk directories
-    const imgSourceDir = path.join(process.cwd(), 'api', 'data', 'img-source');
+    // Check in both public and api/data directories
+    const publicImgSourceDir = path.join(process.cwd(), 'public', 'data', 'img-source');
+    const apiImgSourceDir = path.join(process.cwd(), 'api', 'data', 'img-source');
+    
     let foundPath = null;
     let chunkNumber = null;
+    let source = null;
     
-    // Look through chunk directories
-    for (let i = 1; i <= 50; i++) { // Check up to 50 chunks
-      const chunkDir = path.join(imgSourceDir, `chunk${i}`);
+    // Look through chunk directories in public folder first (for Vercel)
+    for (let i = 1; i <= 50; i++) {
+      const chunkDir = path.join(publicImgSourceDir, `chunk${i}`);
       const imagePath = path.join(chunkDir, filename);
       
       if (fs.existsSync(imagePath)) {
         foundPath = imagePath;
         chunkNumber = i;
+        source = 'public';
         break;
+      }
+    }
+    
+    // If not found in public, check api/data folder (for local development)
+    if (!foundPath) {
+      for (let i = 1; i <= 50; i++) {
+        const chunkDir = path.join(apiImgSourceDir, `chunk${i}`);
+        const imagePath = path.join(chunkDir, filename);
+        
+        if (fs.existsSync(imagePath)) {
+          foundPath = imagePath;
+          chunkNumber = i;
+          source = 'api-data';
+          break;
+        }
       }
     }
     
     if (foundPath) {
       const stats = fs.statSync(foundPath);
+      const urlPath = source === 'public' 
+        ? `/data/img-source/chunk${chunkNumber}/${filename}`
+        : `/api-data/img-source/chunk${chunkNumber}/${filename}`;
+        
       res.json({
         success: true,
         data: {
           filename,
           exists: true,
           chunk: chunkNumber,
-          path: `/data/img-source/chunk${chunkNumber}/${filename}`,
+          source: source,
+          path: urlPath,
           size: stats.size,
           lastModified: stats.mtime
         }
@@ -964,60 +1009,64 @@ apiRouter.get('/images/check/:filename', async (req, res) => {
  */
 apiRouter.get('/images/stats', cacheMiddleware(60 * 60 * 1000), async (req, res) => {
   try {
-    const imgSourceDir = path.join(process.cwd(), 'api', 'data', 'img-source');
-    
-    if (!fs.existsSync(imgSourceDir)) {
-      return res.json({
-        success: true,
-        data: {
-          totalImages: 0,
-          totalSize: 0,
-          chunks: 0,
-          message: 'No images directory found'
-        }
-      });
-    }
+    const publicImgSourceDir = path.join(process.cwd(), 'public', 'data', 'img-source');
+    const apiImgSourceDir = path.join(process.cwd(), 'api', 'data', 'img-source');
     
     let totalImages = 0;
     let totalSize = 0;
     let chunks = 0;
     const chunkStats = {};
     
-    // Read chunk directories
-    const items = fs.readdirSync(imgSourceDir);
-    
-    for (const item of items) {
-      if (item.startsWith('chunk')) {
-        const chunkDir = path.join(imgSourceDir, item);
-        const chunkNumber = item.replace('chunk', '');
-        
-        if (fs.statSync(chunkDir).isDirectory()) {
-          chunks++;
-          const files = fs.readdirSync(chunkDir);
-          let chunkImages = 0;
-          let chunkSize = 0;
+    // Function to process directory
+    function processDirectory(dirPath, source) {
+      if (!fs.existsSync(dirPath)) {
+        return;
+      }
+      
+      const items = fs.readdirSync(dirPath);
+      
+      for (const item of items) {
+        if (item.startsWith('chunk')) {
+          const chunkDir = path.join(dirPath, item);
+          const chunkNumber = item.replace('chunk', '');
           
-          for (const file of files) {
-            const filePath = path.join(chunkDir, file);
-            const stats = fs.statSync(filePath);
-            
-            // Only count image files (not .txt files)
-            if (['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(path.extname(file).toLowerCase())) {
-              chunkImages++;
-              chunkSize += stats.size;
-              totalImages++;
-              totalSize += stats.size;
+          if (fs.statSync(chunkDir).isDirectory()) {
+            if (!chunkStats[chunkNumber]) {
+              chunkStats[chunkNumber] = { images: 0, size: 0, sizeMB: 0, sources: [] };
             }
+            
+            const files = fs.readdirSync(chunkDir);
+            let chunkImages = 0;
+            let chunkSize = 0;
+            
+            for (const file of files) {
+              const filePath = path.join(chunkDir, file);
+              const stats = fs.statSync(filePath);
+              
+              // Only count image files (not .txt files)
+              if (['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(path.extname(file).toLowerCase())) {
+                chunkImages++;
+                chunkSize += stats.size;
+                totalImages++;
+                totalSize += stats.size;
+              }
+            }
+            
+            chunkStats[chunkNumber].images += chunkImages;
+            chunkStats[chunkNumber].size += chunkSize;
+            chunkStats[chunkNumber].sizeMB = Math.round(chunkStats[chunkNumber].size / (1024 * 1024) * 100) / 100;
+            chunkStats[chunkNumber].sources.push(source);
           }
-          
-          chunkStats[chunkNumber] = {
-            images: chunkImages,
-            size: chunkSize,
-            sizeMB: Math.round(chunkSize / (1024 * 1024) * 100) / 100
-          };
         }
       }
     }
+    
+    // Process both directories
+    processDirectory(publicImgSourceDir, 'public');
+    processDirectory(apiImgSourceDir, 'api-data');
+    
+    // Count total chunks
+    chunks = Object.keys(chunkStats).length;
     
     res.json({
       success: true,
@@ -1026,7 +1075,11 @@ apiRouter.get('/images/stats', cacheMiddleware(60 * 60 * 1000), async (req, res)
         totalSize,
         totalSizeMB: Math.round(totalSize / (1024 * 1024) * 100) / 100,
         chunks,
-        chunkStats
+        chunkStats,
+        sources: {
+          public: fs.existsSync(publicImgSourceDir),
+          apiData: fs.existsSync(apiImgSourceDir)
+        }
       }
     });
   } catch (error) {

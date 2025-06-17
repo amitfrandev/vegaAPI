@@ -6,12 +6,12 @@ Title: Teenage Bloodsuckin’ Bimbos
 Full Title: Download Teenage Bloodsuckin’ Bimbos (2019) Dual Audio {Hindi-English} 480p [350MB] | 720p [900MB]
 Original URL: https://vegamovies.yoga/wp-content/uploads/2020/07/Teenage-Bloodsuckin%E2%80%99-Bimbos-2019.jpg
 Error: HTTP 404: Not Found
-Date: 2025-06-17T09:11:53.962Z
+Date: 2025-06-17T10:34:52.599Z
 
 Instructions:
 1. Manually download the image from: https://vegamovies.yoga/wp-content/uploads/2020/07/Teenage-Bloodsuckin%E2%80%99-Bimbos-2019.jpg
 2. Save it as: Teenage_Bloodsuckin_Bimbos_711.jpg
-3. Place it in this directory: E:\ATTACKS\vega-api\api\data\img-source\chunk1
+3. Place it in this directory: E:\ATTACKS\vega-api\public\data\img-source\chunk1
 4. Delete this text file after successful download
 
 Note: This text file was created because the automatic download failed with a 404 error.

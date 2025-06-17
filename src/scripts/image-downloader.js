@@ -8,7 +8,7 @@ const config = require('../utils/config');
 
 // Configuration
 const DOWNLOAD_CONFIG = {
-  outputDir: path.join(process.cwd(), 'api', 'data', 'img-source'),
+  outputDir: path.join(process.cwd(), 'public', 'data', 'img-source'),
   concurrentDownloads: 10, // Process 10 items at a time
   retryAttempts: 3,
   retryDelay: 1000,

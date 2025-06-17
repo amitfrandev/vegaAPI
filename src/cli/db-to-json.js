@@ -88,7 +88,7 @@ function generateLocalImageUrl(movieId, title, originalThumbnail, chunkNumber, i
     .substring(0, 100); // Limit length
   const filename = `${sanitizedTitle}_${movieId}${extension}`;
   
-  // Return local path relative to api directory (images are now in data/img-source/chunkX)
+  // Return local path relative to public directory (images are now in public/data/img-source/chunkX)
   return `/data/img-source/chunk${chunkNumber}/${filename}`;
 }
 
@@ -105,6 +105,12 @@ async function exportData() {
     // Calculate number of chunks (1000 movies per file)
     const moviesPerFile = 1000;
     const totalChunks = Math.ceil(totalMovies / moviesPerFile);
+    
+    // Check if there are any movies with thumbnails at all
+    const moviesWithThumbnailsResult = await runQuery('SELECT COUNT(*) as total FROM movies WHERE thumbnail IS NOT NULL AND thumbnail != ""');
+    const totalMoviesWithThumbnails = moviesWithThumbnailsResult[0].total;
+    
+    console.log(`Total movies with thumbnails: ${totalMoviesWithThumbnails}`);
     
     // Track total images downloaded across all chunks
     let totalImagesDownloaded = 0;
@@ -154,31 +160,87 @@ async function exportData() {
       fs.writeFileSync(outputFile, JSON.stringify(processedMovies));
       console.log(`✅ Exported ${processedMovies.length} movies to ${outputFile} with local image URLs`);
       
-      // Step 4: Download images for this chunk to api/data/img-source/ (AFTER JSON is created)
-      console.log(`🖼️ Step 4: Downloading images for chunk ${chunk + 1} to api/data/img-source/chunk${chunk + 1}/...`);
-      const imageResult = await downloadImagesForMovies(movies, dbPath, chunk + 1);
+      // Step 4: Check if we need to download images (only if there are movies with thumbnails)
+      const moviesWithThumbnails = movies.filter(movie => movie.thumbnail);
       
-      if (imageResult.success) {
-        totalImagesDownloaded += imageResult.stats.downloaded;
-        totalImagesSkipped += imageResult.stats.skipped;
-        totalImagesFailed += imageResult.stats.failed;
-        totalManualDownloads += imageResult.stats.manualDownloads || 0;
-        console.log(`✅ Chunk ${chunk + 1} images completed:`);
-        console.log(`   - Downloaded: ${imageResult.stats.downloaded}`);
-        console.log(`   - Skipped (exists): ${imageResult.stats.skipped}`);
-        console.log(`   - Failed: ${imageResult.stats.failed}`);
-        if (imageResult.stats.manualDownloads > 0) {
-          console.log(`   - Manual downloads: ${imageResult.stats.manualDownloads} (text files created)`);
-        }
+      if (moviesWithThumbnails.length === 0) {
+        console.log(`🖼️ Step 4: Skipping image download for chunk ${chunk + 1} - No movies with thumbnails`);
       } else {
-        console.error(`❌ Chunk ${chunk + 1} image download failed:`, imageResult.error);
+        // Check which images already exist locally to avoid unnecessary downloads
+        const chunkDir = path.join(process.cwd(), 'public', 'data', 'img-source', `chunk${chunk + 1}`);
+        const existingImages = new Set();
+        const manualDownloadFiles = new Set();
+        
+        if (fs.existsSync(chunkDir)) {
+          const files = fs.readdirSync(chunkDir);
+          files.forEach(file => {
+            const ext = path.extname(file).toLowerCase();
+            if (['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(ext)) {
+              existingImages.add(file);
+            } else if (ext === '.txt') {
+              // Add the corresponding image filename (without .txt extension)
+              const imageFilename = file.replace('.txt', '');
+              manualDownloadFiles.add(imageFilename);
+            }
+          });
+        }
+        
+        // Filter movies to only download missing images
+        const moviesNeedingImages = moviesWithThumbnails.filter(movie => {
+          const localImageUrl = generateLocalImageUrl(movie.id, movie.title, movie.thumbnail, chunk + 1, movie.info);
+          if (!localImageUrl) return false;
+          
+          const filename = path.basename(localImageUrl);
+          // Skip if image exists OR if manual download file exists (404 error)
+          return !existingImages.has(filename) && !manualDownloadFiles.has(filename);
+        });
+        
+        if (moviesNeedingImages.length === 0) {
+          console.log(`🖼️ Step 4: Skipping image download for chunk ${chunk + 1} - All images already exist locally or have manual download files`);
+        } else {
+          console.log(`🖼️ Step 4: Downloading ${moviesNeedingImages.length} missing images for chunk ${chunk + 1} to public/data/img-source/chunk${chunk + 1}/...`);
+          console.log(`   - Total movies with thumbnails: ${moviesWithThumbnails.length}`);
+          console.log(`   - Images already exist: ${existingImages.size}`);
+          console.log(`   - Manual download files (404 errors): ${manualDownloadFiles.size}`);
+          console.log(`   - Images to download: ${moviesNeedingImages.length}`);
+          
+          const imageResult = await downloadImagesForMovies(moviesNeedingImages, dbPath, chunk + 1);
+          
+          if (imageResult.success) {
+            totalImagesDownloaded += imageResult.stats.downloaded;
+            totalImagesSkipped += imageResult.stats.skipped;
+            totalImagesFailed += imageResult.stats.failed;
+            totalManualDownloads += imageResult.stats.manualDownloads || 0;
+            console.log(`✅ Chunk ${chunk + 1} images completed:`);
+            console.log(`   - Downloaded: ${imageResult.stats.downloaded}`);
+            console.log(`   - Skipped (exists): ${imageResult.stats.skipped}`);
+            console.log(`   - Failed: ${imageResult.stats.failed}`);
+            if (imageResult.stats.manualDownloads > 0) {
+              console.log(`   - Manual downloads: ${imageResult.stats.manualDownloads} (text files created)`);
+            }
+          } else {
+            console.error(`❌ Chunk ${chunk + 1} image download failed:`, imageResult.error);
+          }
+        }
       }
       
       // Step 5: Show chunk summary
       console.log(`\n📊 Chunk ${chunk + 1} Summary:`);
       console.log(`   - Database: ${movies.length} movies fetched`);
       console.log(`   - JSON: ${processedMovies.length} movies exported with local URLs`);
-      console.log(`   - Images: ${imageResult.success ? imageResult.stats.downloaded : 0} downloaded to api/data/img-source/chunk${chunk + 1}/`);
+      if (moviesWithThumbnails.length > 0) {
+        if (moviesNeedingImages && moviesNeedingImages.length === 0) {
+          const existingCount = existingImages ? existingImages.size : 0;
+          const manualCount = manualDownloadFiles ? manualDownloadFiles.size : 0;
+          console.log(`   - Images: All ${moviesWithThumbnails.length} images handled (${existingCount} exist, ${manualCount} manual downloads)`);
+        } else if (moviesNeedingImages && moviesNeedingImages.length > 0) {
+          console.log(`   - Images: ${imageResult && imageResult.success ? imageResult.stats.downloaded : 0} downloaded to public/data/img-source/chunk${chunk + 1}/`);
+        } else {
+          console.log(`   - Images: ${moviesWithThumbnails.length} with thumbnails, processing...`);
+        }
+      } else {
+        console.log(`   - Images: Skipped (no thumbnails)`);
+      }
       console.log(`   - Progress: ${chunk + 1}/${totalChunks} chunks completed`);
       
       // Add a small delay between chunks (except for the last one)
@@ -361,26 +423,32 @@ async function exportData() {
     console.log('EXPORT COMPLETED SUCCESSFULLY!');
     console.log('='.repeat(60));
     console.log(`📁 All data exported to: ${JSON_OUTPUT_DIR}`);
-    console.log(`🖼️ All images downloaded to: api/data/img-source/ (organized by chunks)`);
+    console.log(`🖼️ All images downloaded to: public/data/img-source/ (organized by chunks)`);
     
     // Print final image download summary
     console.log('\n' + '='.repeat(60));
     console.log('FINAL IMAGE DOWNLOAD SUMMARY');
     console.log('='.repeat(60));
-    console.log(`Total images downloaded: ${totalImagesDownloaded}`);
-    console.log(`Total images skipped (already exist): ${totalImagesSkipped}`);
-    console.log(`Total images failed: ${totalImagesFailed}`);
-    if (totalManualDownloads > 0) {
-      console.log(`Total manual downloads: ${totalManualDownloads} (text files created)`);
-    }
-    console.log(`Images saved to: api/data/img-source/ (chunk1, chunk2, etc.)`);
-    console.log(`JSON files contain local image URLs: /data/img-source/chunkX/[title].[ext]`);
-    if (totalManualDownloads > 0) {
-      console.log(`\n📝 Manual Download Instructions:`);
-      console.log(`- Text files have been created for failed downloads (404 errors)`);
-      console.log(`- Check each chunk folder for .txt files`);
-      console.log(`- Follow instructions in text files to manually download images`);
-      console.log(`- Delete text files after successful manual download`);
+    if (totalMoviesWithThumbnails > 0) {
+      console.log(`Total images downloaded: ${totalImagesDownloaded}`);
+      console.log(`Total images skipped (already exist): ${totalImagesSkipped}`);
+      console.log(`Total images failed: ${totalImagesFailed}`);
+      if (totalManualDownloads > 0) {
+        console.log(`Total manual downloads: ${totalManualDownloads} (text files created)`);
+      }
+      console.log(`Images saved to: public/data/img-source/ (chunk1, chunk2, etc.)`);
+      console.log(`JSON files contain local image URLs: /data/img-source/chunkX/[title].[ext]`);
+      if (totalManualDownloads > 0) {
+        console.log(`\n📝 Manual Download Instructions:`);
+        console.log(`- Text files have been created for failed downloads (404 errors)`);
+        console.log(`- Check each chunk folder for .txt files`);
+        console.log(`- Follow instructions in text files to manually download images`);
+        console.log(`- Delete text files after successful manual download`);
+      }
+    } else {
+      console.log(`No movies with thumbnails found - Image download process skipped entirely`);
+      console.log(`JSON files contain local image URLs: /data/img-source/chunkX/[title].[ext]`);
+      console.log(`Images will be downloaded when new movies with thumbnails are added`);
     }
     console.log('='.repeat(60));
     

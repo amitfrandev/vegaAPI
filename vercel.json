@@ -1,12 +1,21 @@
 {
-  "version": 2,
-  "builds": [
-    { "src": "api/index.js", "use": "@vercel/node" }
-  ],
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 30
+    }
+  },
   "routes": [
-    { "src": "/(.*)", "dest": "api/index.js" }
+    {
+      "src": "/data/img-source/(.*)",
+      "dest": "/api/data/img-source/$1",
+      "headers": {
+        "Cache-Control": "public, max-age=86400"
+      }
+    }
   ],
-  "env": {
-    "NODE_ENV": "production"
+  "build": {
+    "env": {
+      "NODE_ENV": "production"
+    }
   }
 } 
