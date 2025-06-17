@@ -63,10 +63,16 @@ async function exportData() {
     let totalImagesSkipped = 0;
     let totalImagesFailed = 0;
     
+    console.log(`Processing ${totalChunks} chunks of ${moviesPerFile} movies each...`);
+    console.log('='.repeat(60));
+    
     for (let chunk = 0; chunk < totalChunks; chunk++) {
       const offset = chunk * moviesPerFile;
-      console.log(`Exporting movies chunk ${chunk + 1}/${totalChunks} (offset: ${offset})`);
+      console.log(`\n📦 CHUNK ${chunk + 1}/${totalChunks} (Movies ${offset + 1}-${Math.min(offset + moviesPerFile, totalMovies)})`);
+      console.log('='.repeat(60));
       
+      // Step 1: Fetch movies for this chunk
+      console.log(`📋 Fetching movies for chunk ${chunk + 1}...`);
       const movies = await runQuery(
         `SELECT id, title, url, thumbnail, date, info, tags 
          FROM movies 
@@ -75,7 +81,10 @@ async function exportData() {
         [moviesPerFile, offset]
       );
       
-      // Process the data
+      console.log(`✓ Fetched ${movies.length} movies from database`);
+      
+      // Step 2: Process and export JSON data for this chunk
+      console.log(`📄 Processing JSON data for chunk ${chunk + 1}...`);
       const processedMovies = movies.map(movie => ({
         id: movie.id,
         title: movie.title,
@@ -86,28 +95,46 @@ async function exportData() {
         tags: JSON.parse(movie.tags || '[]')
       }));
       
-      // Write to file
+      // Write JSON file for this chunk
       const outputFile = path.join(JSON_OUTPUT_DIR, `movies_${chunk}.json`);
-      
       fs.writeFileSync(outputFile, JSON.stringify(processedMovies));
-      console.log(`Wrote ${processedMovies.length} movies to ${outputFile}`);
+      console.log(`✅ Exported ${processedMovies.length} movies to ${outputFile}`);
       
-      // Download images for this specific chunk only
-      console.log(`\n🔄 Downloading images for chunk ${chunk + 1}/${totalChunks}...`);
+      // Step 3: Download images for this specific chunk immediately
+      console.log(`🖼️ Downloading images for chunk ${chunk + 1}...`);
       const imageResult = await downloadImagesForMovies(movies, dbPath);
       
       if (imageResult.success) {
         totalImagesDownloaded += imageResult.stats.downloaded;
         totalImagesSkipped += imageResult.stats.skipped;
         totalImagesFailed += imageResult.stats.failed;
-        console.log(`✅ Chunk ${chunk + 1} images: ${imageResult.stats.downloaded} downloaded, ${imageResult.stats.skipped} skipped, ${imageResult.stats.failed} failed`);
+        console.log(`✅ Chunk ${chunk + 1} images completed:`);
+        console.log(`   - Downloaded: ${imageResult.stats.downloaded}`);
+        console.log(`   - Skipped (exists): ${imageResult.stats.skipped}`);
+        console.log(`   - Failed: ${imageResult.stats.failed}`);
       } else {
         console.error(`❌ Chunk ${chunk + 1} image download failed:`, imageResult.error);
       }
+      
+      // Step 4: Show chunk summary
+      console.log(`\n📊 Chunk ${chunk + 1} Summary:`);
+      console.log(`   - JSON: ${processedMovies.length} movies exported`);
+      console.log(`   - Images: ${imageResult.success ? imageResult.stats.downloaded : 0} downloaded`);
+      console.log(`   - Progress: ${chunk + 1}/${totalChunks} chunks completed`);
+      
+      // Add a small delay between chunks (except for the last one)
+      if (chunk < totalChunks - 1) {
+        console.log('\n⏳ Waiting before next chunk...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
     }
     
+    console.log('\n' + '='.repeat(60));
+    console.log('JSON EXPORT COMPLETED');
+    console.log('='.repeat(60));
+    
     // 2. Export movies lookup by ID
-    console.log('Creating movies lookup by ID...');
+    console.log('\n📋 Creating movies lookup by ID...');
     const movieIds = await runQuery('SELECT id FROM movies');
     const moviesLookup = {};
     
@@ -124,10 +151,10 @@ async function exportData() {
       path.join(JSON_OUTPUT_DIR, 'movies_lookup.json'), 
       JSON.stringify(moviesLookup)
     );
-    console.log('Movies lookup exported');
+    console.log('✅ Movies lookup exported');
     
     // 3. Export filters data
-    console.log('Exporting filters data...');
+    console.log('\n🔍 Exporting filters data...');
     
     // Years
     const years = await runQuery(`
@@ -163,10 +190,10 @@ async function exportData() {
       path.join(JSON_OUTPUT_DIR, 'filters.json'), 
       JSON.stringify(filters)
     );
-    console.log('Filters data exported');
+    console.log('✅ Filters data exported');
     
     // 4. Export categories
-    console.log('Exporting categories data...');
+    console.log('\n📂 Exporting categories data...');
     
     // Get all unique category types
     const categoryTypes = await runQuery(`
@@ -229,10 +256,10 @@ async function exportData() {
       path.join(JSON_OUTPUT_DIR, 'categories.json'), 
       JSON.stringify(categories, null, 2)
     );
-    console.log('Categories data exported');
+    console.log('✅ Categories data exported');
     
     // 5. Export stats
-    console.log('Exporting stats data...');
+    console.log('\n📊 Exporting stats data...');
     
     const moviesCount = await runQuery('SELECT COUNT(*) as count FROM movies');
     const seriesCount = await runQuery(`
@@ -255,7 +282,7 @@ async function exportData() {
       path.join(JSON_OUTPUT_DIR, 'stats.json'), 
       JSON.stringify(stats)
     );
-    console.log('Stats data exported');
+    console.log('✅ Stats data exported');
     
     // Create a manifest file
     const manifest = {
@@ -271,8 +298,10 @@ async function exportData() {
       JSON.stringify(manifest)
     );
     
-    console.log('Export completed successfully!');
-    console.log(`All data exported to ${JSON_OUTPUT_DIR}`);
+    console.log('\n' + '='.repeat(60));
+    console.log('EXPORT COMPLETED SUCCESSFULLY!');
+    console.log('='.repeat(60));
+    console.log(`📁 All data exported to: ${JSON_OUTPUT_DIR}`);
     
     // Print final image download summary
     console.log('\n' + '='.repeat(60));
