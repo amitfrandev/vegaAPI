@@ -66,12 +66,27 @@ function sanitizeFilename(filename) {
 }
 
 // Helper function to generate local image URL
-function generateLocalImageUrl(movieId, title, originalThumbnail, chunkNumber) {
+function generateLocalImageUrl(movieId, title, originalThumbnail, chunkNumber, info) {
   if (!originalThumbnail) return null;
   
+  // Parse info to get actual movie title
+  let actualTitle = title; // fallback to full title
+  try {
+    const infoData = JSON.parse(info || '[]');
+    if (infoData && infoData[0] && infoData[0].title) {
+      actualTitle = infoData[0].title;
+    }
+  } catch (error) {
+    console.log(`Warning: Could not parse info for movie ${movieId}, using full title`);
+  }
+  
   const extension = getFileExtension(originalThumbnail);
-  const sanitizedTitle = sanitizeFilename(title);
-  const filename = `${sanitizedTitle}${extension}`;
+  const sanitizedTitle = actualTitle
+    .replace(/[<>:"/\\|?*]/g, '_') // Remove invalid characters
+    .replace(/\s+/g, '_') // Replace spaces with underscores
+    .replace(/[^\w\-_.]/g, '') // Keep only alphanumeric, hyphens, underscores, dots
+    .substring(0, 100); // Limit length
+  const filename = `${sanitizedTitle}_${movieId}${extension}`;
   
   // Return local path relative to api directory (images are now in data/img-source/chunkX)
   return `/data/img-source/chunk${chunkNumber}/${filename}`;
@@ -95,6 +110,7 @@ async function exportData() {
     let totalImagesDownloaded = 0;
     let totalImagesSkipped = 0;
     let totalImagesFailed = 0;
+    let totalManualDownloads = 0;
     
     console.log(`Processing ${totalChunks} chunks of ${moviesPerFile} movies each...`);
     console.log('='.repeat(60));
@@ -116,27 +132,11 @@ async function exportData() {
       
       console.log(`✓ Fetched ${movies.length} movies from database`);
       
-      // Step 2: Download images for this chunk to api/data/img-source/
-      console.log(`🖼️ Step 2: Downloading images for chunk ${chunk + 1} to api/data/img-source/chunk${chunk + 1}/...`);
-      const imageResult = await downloadImagesForMovies(movies, dbPath, chunk + 1);
-      
-      if (imageResult.success) {
-        totalImagesDownloaded += imageResult.stats.downloaded;
-        totalImagesSkipped += imageResult.stats.skipped;
-        totalImagesFailed += imageResult.stats.failed;
-        console.log(`✅ Chunk ${chunk + 1} images completed:`);
-        console.log(`   - Downloaded: ${imageResult.stats.downloaded}`);
-        console.log(`   - Skipped (exists): ${imageResult.stats.skipped}`);
-        console.log(`   - Failed: ${imageResult.stats.failed}`);
-      } else {
-        console.error(`❌ Chunk ${chunk + 1} image download failed:`, imageResult.error);
-      }
-      
-      // Step 3: Process JSON data with local image URLs
-      console.log(`📄 Step 3: Processing JSON data with local image URLs for chunk ${chunk + 1}...`);
+      // Step 2: Process JSON data with local image URLs FIRST
+      console.log(`📄 Step 2: Processing JSON data with local image URLs for chunk ${chunk + 1}...`);
       const processedMovies = movies.map(movie => {
         // Generate local image URL for downloaded images
-        const localImageUrl = generateLocalImageUrl(movie.id, movie.title, movie.thumbnail, chunk + 1);
+        const localImageUrl = generateLocalImageUrl(movie.id, movie.title, movie.thumbnail, chunk + 1, movie.info);
         
         return {
           id: movie.id,
@@ -149,16 +149,36 @@ async function exportData() {
         };
       });
       
-      // Step 4: Write JSON file for this chunk with local image URLs
+      // Step 3: Write JSON file for this chunk with local image URLs FIRST
       const outputFile = path.join(JSON_OUTPUT_DIR, `movies_${chunk}.json`);
       fs.writeFileSync(outputFile, JSON.stringify(processedMovies));
       console.log(`✅ Exported ${processedMovies.length} movies to ${outputFile} with local image URLs`);
       
+      // Step 4: Download images for this chunk to api/data/img-source/ (AFTER JSON is created)
+      console.log(`🖼️ Step 4: Downloading images for chunk ${chunk + 1} to api/data/img-source/chunk${chunk + 1}/...`);
+      const imageResult = await downloadImagesForMovies(movies, dbPath, chunk + 1);
+      
+      if (imageResult.success) {
+        totalImagesDownloaded += imageResult.stats.downloaded;
+        totalImagesSkipped += imageResult.stats.skipped;
+        totalImagesFailed += imageResult.stats.failed;
+        totalManualDownloads += imageResult.stats.manualDownloads || 0;
+        console.log(`✅ Chunk ${chunk + 1} images completed:`);
+        console.log(`   - Downloaded: ${imageResult.stats.downloaded}`);
+        console.log(`   - Skipped (exists): ${imageResult.stats.skipped}`);
+        console.log(`   - Failed: ${imageResult.stats.failed}`);
+        if (imageResult.stats.manualDownloads > 0) {
+          console.log(`   - Manual downloads: ${imageResult.stats.manualDownloads} (text files created)`);
+        }
+      } else {
+        console.error(`❌ Chunk ${chunk + 1} image download failed:`, imageResult.error);
+      }
+      
       // Step 5: Show chunk summary
       console.log(`\n📊 Chunk ${chunk + 1} Summary:`);
       console.log(`   - Database: ${movies.length} movies fetched`);
-      console.log(`   - Images: ${imageResult.success ? imageResult.stats.downloaded : 0} downloaded to api/data/img-source/chunk${chunk + 1}/`);
       console.log(`   - JSON: ${processedMovies.length} movies exported with local URLs`);
+      console.log(`   - Images: ${imageResult.success ? imageResult.stats.downloaded : 0} downloaded to api/data/img-source/chunk${chunk + 1}/`);
       console.log(`   - Progress: ${chunk + 1}/${totalChunks} chunks completed`);
       
       // Add a small delay between chunks (except for the last one)
@@ -350,8 +370,18 @@ async function exportData() {
     console.log(`Total images downloaded: ${totalImagesDownloaded}`);
     console.log(`Total images skipped (already exist): ${totalImagesSkipped}`);
     console.log(`Total images failed: ${totalImagesFailed}`);
+    if (totalManualDownloads > 0) {
+      console.log(`Total manual downloads: ${totalManualDownloads} (text files created)`);
+    }
     console.log(`Images saved to: api/data/img-source/ (chunk1, chunk2, etc.)`);
     console.log(`JSON files contain local image URLs: /data/img-source/chunkX/[title].[ext]`);
+    if (totalManualDownloads > 0) {
+      console.log(`\n📝 Manual Download Instructions:`);
+      console.log(`- Text files have been created for failed downloads (404 errors)`);
+      console.log(`- Check each chunk folder for .txt files`);
+      console.log(`- Follow instructions in text files to manually download images`);
+      console.log(`- Delete text files after successful manual download`);
+    }
     console.log('='.repeat(60));
     
   } catch (error) {

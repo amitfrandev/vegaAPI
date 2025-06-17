@@ -1,0 +1,17 @@
+Manual Download Required
+=======================
+
+Movie ID: 3563
+Title: Monster Hunt 2
+Full Title: Download Monster Hunt 2 (2018) BluRay Hindi Dubbed [ORG] Full Movie 480p [350MB] | 720p [1.2GB] | 1080p [3GB]
+Original URL: https://vegamovies.yoga/wp-content/uploads/2021/09/Monster-Hunt-2-%E2%80%93-2018.jpg
+Error: HTTP 404: Not Found
+Date: 2025-06-17T09:24:14.176Z
+
+Instructions:
+1. Manually download the image from: https://vegamovies.yoga/wp-content/uploads/2021/09/Monster-Hunt-2-%E2%80%93-2018.jpg
+2. Save it as: Monster_Hunt_2_3563.jpg
+3. Place it in this directory: E:\ATTACKS\vega-api\api\data\img-source\chunk4
+4. Delete this text file after successful download
+
+Note: This text file was created because the automatic download failed with a 404 error.

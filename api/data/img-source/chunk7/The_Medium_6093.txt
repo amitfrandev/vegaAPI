@@ -1,0 +1,17 @@
+Manual Download Required
+=======================
+
+Movie ID: 6093
+Title: The Medium
+Full Title: Download The Medium (2021) WEB-DL ORG [Hindi Dubbed] Full Movie 480p [450MB] | 720p [1.2GB] | 1080p [2.5GB]
+Original URL: https://vegamovies.yoga/wp-content/uploads/0202/08/The-Mediumss.jpg
+Error: HTTP 404: Not Found
+Date: 2025-06-17T09:38:46.476Z
+
+Instructions:
+1. Manually download the image from: https://vegamovies.yoga/wp-content/uploads/0202/08/The-Mediumss.jpg
+2. Save it as: The_Medium_6093.jpg
+3. Place it in this directory: E:\ATTACKS\vega-api\api\data\img-source\chunk7
+4. Delete this text file after successful download
+
+Note: This text file was created because the automatic download failed with a 404 error.

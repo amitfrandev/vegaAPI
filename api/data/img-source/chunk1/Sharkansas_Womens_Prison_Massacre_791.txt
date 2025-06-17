@@ -1,0 +1,17 @@
+Manual Download Required
+=======================
+
+Movie ID: 791
+Title: Sharkansas Women’s Prison Massacre
+Full Title: Download Sharkansas Women’s Prison Massacre (2015) Dual Audio {Hindi-English} 480p [300MB] | 720p [750MB]
+Original URL: https://vegamovies.yoga/wp-content/uploads/2020/07/Sharkansas-Women%E2%80%99s-Prison-Massacre-2015-Hindi.jpg
+Error: HTTP 404: Not Found
+Date: 2025-06-17T09:12:18.957Z
+
+Instructions:
+1. Manually download the image from: https://vegamovies.yoga/wp-content/uploads/2020/07/Sharkansas-Women%E2%80%99s-Prison-Massacre-2015-Hindi.jpg
+2. Save it as: Sharkansas_Womens_Prison_Massacre_791.jpg
+3. Place it in this directory: E:\ATTACKS\vega-api\api\data\img-source\chunk1
+4. Delete this text file after successful download
+
+Note: This text file was created because the automatic download failed with a 404 error.

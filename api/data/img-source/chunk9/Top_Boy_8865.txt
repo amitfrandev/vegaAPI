@@ -1,0 +1,17 @@
+Manual Download Required
+=======================
+
+Movie ID: 8865
+Title: Top Boy
+Full Title: Download Netflix Top Boy (Season 1 – 3) Complete Dual Audio {Hindi-English} 480p | 720p | 1080p WEB-DL
+Original URL: https://vegamovies.yoga/wp-content/uploads/2023/09/Top-Boy-Season-1-%E2%80%93-3-Netflix-Original-Vegamovies.jpg
+Error: HTTP 404: Not Found
+Date: 2025-06-17T09:58:15.528Z
+
+Instructions:
+1. Manually download the image from: https://vegamovies.yoga/wp-content/uploads/2023/09/Top-Boy-Season-1-%E2%80%93-3-Netflix-Original-Vegamovies.jpg
+2. Save it as: Top_Boy_8865.jpg
+3. Place it in this directory: E:\ATTACKS\vega-api\api\data\img-source\chunk9
+4. Delete this text file after successful download
+
+Note: This text file was created because the automatic download failed with a 404 error.

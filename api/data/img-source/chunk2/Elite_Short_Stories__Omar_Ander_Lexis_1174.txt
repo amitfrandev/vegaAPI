@@ -1,0 +1,17 @@
+Manual Download Required
+=======================
+
+Movie ID: 1174
+Title: Elite Short Stories: Omar Ander Lexis
+Full Title: Download Elite Short Stories: Omar Ander Lexis (2021) Season 1 English Complete Netflix WEB Series 720p [100MB] WEB-DL
+Original URL: https://vegamovies.yoga/wp-content/uploads/2021/06/Elite-Short-Stories-%E2%80%93-Omar-Ander-Lexis-poster.png
+Error: HTTP 404: Not Found
+Date: 2025-06-17T09:13:57.958Z
+
+Instructions:
+1. Manually download the image from: https://vegamovies.yoga/wp-content/uploads/2021/06/Elite-Short-Stories-%E2%80%93-Omar-Ander-Lexis-poster.png
+2. Save it as: Elite_Short_Stories__Omar_Ander_Lexis_1174.png
+3. Place it in this directory: E:\ATTACKS\vega-api\api\data\img-source\chunk2
+4. Delete this text file after successful download
+
+Note: This text file was created because the automatic download failed with a 404 error.

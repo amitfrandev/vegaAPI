@@ -1,0 +1,17 @@
+Manual Download Required
+=======================
+
+Movie ID: 3155
+Title: Rakshak – Mupparimanam
+Full Title: Download Rakshak – Mupparimanam (2017) Hindi Dubbed Full Movie 480p [350MB] | 720p [1.4GB]
+Original URL: https://vegamovies.yoga/wp-content/uploads/2022/01/Rakshak-%E2%80%93-Mupparimanam.jpg
+Error: HTTP 404: Not Found
+Date: 2025-06-17T09:22:32.020Z
+
+Instructions:
+1. Manually download the image from: https://vegamovies.yoga/wp-content/uploads/2022/01/Rakshak-%E2%80%93-Mupparimanam.jpg
+2. Save it as: Rakshak__Mupparimanam_3155.jpg
+3. Place it in this directory: E:\ATTACKS\vega-api\api\data\img-source\chunk4
+4. Delete this text file after successful download
+
+Note: This text file was created because the automatic download failed with a 404 error.

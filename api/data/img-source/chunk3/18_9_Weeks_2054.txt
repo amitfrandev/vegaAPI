@@ -1,0 +1,17 @@
+Manual Download Required
+=======================
+
+Movie ID: 2054
+Title: [18+] 9½ Weeks
+Full Title: Download [18+] 9½ Weeks (1986) Dual Audio {Hindi-English} 480p [400MB] | 720p [1GB]
+Original URL: https://vegamovies.yoga/wp-content/uploads/2021/12/9%C2%BD-Weeks-1986.jpg
+Error: HTTP 404: Not Found
+Date: 2025-06-17T09:17:50.644Z
+
+Instructions:
+1. Manually download the image from: https://vegamovies.yoga/wp-content/uploads/2021/12/9%C2%BD-Weeks-1986.jpg
+2. Save it as: 18_9_Weeks_2054.jpg
+3. Place it in this directory: E:\ATTACKS\vega-api\api\data\img-source\chunk3
+4. Delete this text file after successful download
+
+Note: This text file was created because the automatic download failed with a 404 error.

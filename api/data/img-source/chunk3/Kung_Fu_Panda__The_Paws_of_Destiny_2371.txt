@@ -1,0 +1,17 @@
+Manual Download Required
+=======================
+
+Movie ID: 2371
+Title: Kung Fu Panda: The Paws of Destiny
+Full Title: Download Kung Fu Panda: The Paws of Destiny (Season 1 – 2) Hindi Dubbed Complete Amazon Prime Originals WEB Series 480p | 720p HDRip
+Original URL: https://vegamovies.yoga/wp-content/uploads/2020/06/Kung-Fu-Panda-Season-1-%E2%80%93-2-.jpg
+Error: HTTP 404: Not Found
+Date: 2025-06-17T09:19:12.001Z
+
+Instructions:
+1. Manually download the image from: https://vegamovies.yoga/wp-content/uploads/2020/06/Kung-Fu-Panda-Season-1-%E2%80%93-2-.jpg
+2. Save it as: Kung_Fu_Panda__The_Paws_of_Destiny_2371.jpg
+3. Place it in this directory: E:\ATTACKS\vega-api\api\data\img-source\chunk3
+4. Delete this text file after successful download
+
+Note: This text file was created because the automatic download failed with a 404 error.

@@ -1,0 +1,17 @@
+Manual Download Required
+=======================
+
+Movie ID: 6895
+Title: Season 1 PART 2
+Full Title: Download Spy x Family (2022) Season 1 PART 2 [Episode 5 Added] English WEB Series 720p [200MB] WEB-DL
+Original URL: https://vegamovies.yoga/wp-content/uploads/2022/08/SPY%C3%97FAMILY-Season-1-PART-2.jpg
+Error: HTTP 404: Not Found
+Date: 2025-06-17T09:45:19.261Z
+
+Instructions:
+1. Manually download the image from: https://vegamovies.yoga/wp-content/uploads/2022/08/SPY%C3%97FAMILY-Season-1-PART-2.jpg
+2. Save it as: Season_1_PART_2_6895.jpg
+3. Place it in this directory: E:\ATTACKS\vega-api\api\data\img-source\chunk7
+4. Delete this text file after successful download
+
+Note: This text file was created because the automatic download failed with a 404 error.

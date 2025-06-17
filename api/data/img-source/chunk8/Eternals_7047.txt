@@ -1,0 +1,17 @@
+Manual Download Required
+=======================
+
+Movie ID: 7047
+Title: Eternals
+Full Title: Download Eternals (2021) IMAX BluRay Dual Audio {Hindi-English} 480p [500MB] | 720p [1.4GB] | 1080p [3.2GB] | 2160p [19GB]
+Original URL: https://vegamovies.yoga/wp-content/uploads/2022/01/ETERNALS-%E0%A4%87%E0%A4%9F%E0%A4%B0%E0%A5%8D%E0%A4%A8%E0%A4%B2%E0%A5%8D%E0%A4%B8-2021-Movie.jpg
+Error: HTTP 404: Not Found
+Date: 2025-06-17T09:46:23.386Z
+
+Instructions:
+1. Manually download the image from: https://vegamovies.yoga/wp-content/uploads/2022/01/ETERNALS-%E0%A4%87%E0%A4%9F%E0%A4%B0%E0%A5%8D%E0%A4%A8%E0%A4%B2%E0%A5%8D%E0%A4%B8-2021-Movie.jpg
+2. Save it as: Eternals_7047.jpg
+3. Place it in this directory: E:\ATTACKS\vega-api\api\data\img-source\chunk8
+4. Delete this text file after successful download
+
+Note: This text file was created because the automatic download failed with a 404 error.

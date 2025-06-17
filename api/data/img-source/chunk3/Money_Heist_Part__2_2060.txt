@@ -1,0 +1,17 @@
+Manual Download Required
+=======================
+
+Movie ID: 2060
+Title: Money Heist Part – 2
+Full Title: Download Money Heist – Netflix Original (2021) Season 5 Volume 2 Dual Audio {Hindi-English} WEB Series 480p [150MB] | 720p [350MB] | 1080p [1.2GB] WEB-DL
+Original URL: https://vegamovies.yoga/wp-content/uploads/2021/12/Money-Heist-Part-5-%E2%80%93-Vol-2-Netflix.jpg
+Error: HTTP 404: Not Found
+Date: 2025-06-17T09:17:50.627Z
+
+Instructions:
+1. Manually download the image from: https://vegamovies.yoga/wp-content/uploads/2021/12/Money-Heist-Part-5-%E2%80%93-Vol-2-Netflix.jpg
+2. Save it as: Money_Heist_Part__2_2060.jpg
+3. Place it in this directory: E:\ATTACKS\vega-api\api\data\img-source\chunk3
+4. Delete this text file after successful download
+
+Note: This text file was created because the automatic download failed with a 404 error.

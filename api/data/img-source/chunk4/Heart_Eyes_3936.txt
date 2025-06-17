@@ -1,0 +1,17 @@
+Manual Download Required
+=======================
+
+Movie ID: 3936
+Title: Heart Eyes
+Full Title: Download Heart Eyes (2025) WEB-DL {English With Subtitles} Full Movie 480p [315MB] | 720p [900MB] | 1080p [1.9GB]
+Original URL: https://vegamovies.yoga/wp-content/uploads/2025/03/Heart-Eyes-s.jpg
+Error: HTTP 404: Not Found
+Date: 2025-06-17T09:26:00.864Z
+
+Instructions:
+1. Manually download the image from: https://vegamovies.yoga/wp-content/uploads/2025/03/Heart-Eyes-s.jpg
+2. Save it as: Heart_Eyes_3936.jpg
+3. Place it in this directory: E:\ATTACKS\vega-api\api\data\img-source\chunk4
+4. Delete this text file after successful download
+
+Note: This text file was created because the automatic download failed with a 404 error.

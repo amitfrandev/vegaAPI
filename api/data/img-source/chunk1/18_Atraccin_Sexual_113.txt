@@ -1,0 +1,17 @@
+Manual Download Required
+=======================
+
+Movie ID: 113
+Title: [18+] Atracción Sexual
+Full Title: Download [18+] Atracción Sexual (1995) Full Movie In English 480p [400MB] | 720p [900MB]
+Original URL: https://vegamovies.yoga/wp-content/uploads/2020/04/Atracci%C3%B3n-Sexual-1995.png
+Error: HTTP 404: Not Found
+Date: 2025-06-17T09:09:25.281Z
+
+Instructions:
+1. Manually download the image from: https://vegamovies.yoga/wp-content/uploads/2020/04/Atracci%C3%B3n-Sexual-1995.png
+2. Save it as: 18_Atraccin_Sexual_113.png
+3. Place it in this directory: E:\ATTACKS\vega-api\api\data\img-source\chunk1
+4. Delete this text file after successful download
+
+Note: This text file was created because the automatic download failed with a 404 error.

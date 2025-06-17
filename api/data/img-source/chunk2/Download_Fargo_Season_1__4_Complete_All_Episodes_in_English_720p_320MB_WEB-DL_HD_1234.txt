@@ -1,0 +1,17 @@
+Manual Download Required
+=======================
+
+Movie ID: 1234
+Title: Download Fargo (Season 1 – 4) Complete All Episodes in English 720p [320MB] WEB-DL HD
+Full Title: Download Fargo (Season 1 – 4) Complete All Episodes in English 720p [320MB] WEB-DL HD
+Original URL: https://vegamovies.yoga/wp-content/uploads/2021/01/Fargo-Season-1-%E2%80%93-4-poster.jpg
+Error: HTTP 404: Not Found
+Date: 2025-06-17T09:14:17.165Z
+
+Instructions:
+1. Manually download the image from: https://vegamovies.yoga/wp-content/uploads/2021/01/Fargo-Season-1-%E2%80%93-4-poster.jpg
+2. Save it as: Download_Fargo_Season_1__4_Complete_All_Episodes_in_English_720p_320MB_WEB-DL_HD_1234.jpg
+3. Place it in this directory: E:\ATTACKS\vega-api\api\data\img-source\chunk2
+4. Delete this text file after successful download
+
+Note: This text file was created because the automatic download failed with a 404 error.

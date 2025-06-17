@@ -1,0 +1,17 @@
+Manual Download Required
+=======================
+
+Movie ID: 8370
+Title: Ball Z: Broly Movie 8 – The Legendary Super Saiyan
+Full Title: Download Ball Z: Broly Movie 8 – The Legendary Super Saiyan (1993) Dual Audio {Hindi-English} 480p [360MB] | 720p [1GB] | 1080p [3GB]
+Original URL: https://vegamovies.yoga/wp-content/uploads/2023/06/Dragon-Ball-Z-Broly-%E2%80%93-The-Legendary-Super-Saiyan-Hindi-Dubbed-Anime-Series.jpg
+Error: HTTP 404: Not Found
+Date: 2025-06-17T09:53:28.925Z
+
+Instructions:
+1. Manually download the image from: https://vegamovies.yoga/wp-content/uploads/2023/06/Dragon-Ball-Z-Broly-%E2%80%93-The-Legendary-Super-Saiyan-Hindi-Dubbed-Anime-Series.jpg
+2. Save it as: Ball_Z__Broly_Movie_8__The_Legendary_Super_Saiyan_8370.jpg
+3. Place it in this directory: E:\ATTACKS\vega-api\api\data\img-source\chunk9
+4. Delete this text file after successful download
+
+Note: This text file was created because the automatic download failed with a 404 error.

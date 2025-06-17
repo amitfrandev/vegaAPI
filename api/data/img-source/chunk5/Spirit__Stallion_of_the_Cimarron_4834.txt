@@ -1,0 +1,17 @@
+Manual Download Required
+=======================
+
+Movie ID: 4834
+Title: Spirit: Stallion of the Cimarron
+Full Title: Download Spirit: Stallion of the Cimarron (2002) Dual Audio {Hindi-English} 480p [300MB] | 720p [700MB]
+Original URL: https://vegamovies.yoga/wp-content/uploads/2020/04/Spirit-%E2%80%93-Stallion-of-the-Cimarron.jpg
+Error: HTTP 404: Not Found
+Date: 2025-06-17T09:31:17.929Z
+
+Instructions:
+1. Manually download the image from: https://vegamovies.yoga/wp-content/uploads/2020/04/Spirit-%E2%80%93-Stallion-of-the-Cimarron.jpg
+2. Save it as: Spirit__Stallion_of_the_Cimarron_4834.jpg
+3. Place it in this directory: E:\ATTACKS\vega-api\api\data\img-source\chunk5
+4. Delete this text file after successful download
+
+Note: This text file was created because the automatic download failed with a 404 error.

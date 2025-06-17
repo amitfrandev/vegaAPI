@@ -1,0 +1,17 @@
+Manual Download Required
+=======================
+
+Movie ID: 3461
+Title: Max Anger – With One Eye Open
+Full Title: Download Max Anger – With One Eye Open (2021) Season 1 Hindi Dubbed 480p [120MB] | 720p [400MB] WEB-DL
+Original URL: https://vegamovies.yoga/wp-content/uploads/2022/03/ax-Anger-%E2%80%93-With-One-Eye-Open-Season-1.jpg
+Error: HTTP 404: Not Found
+Date: 2025-06-17T09:23:44.511Z
+
+Instructions:
+1. Manually download the image from: https://vegamovies.yoga/wp-content/uploads/2022/03/ax-Anger-%E2%80%93-With-One-Eye-Open-Season-1.jpg
+2. Save it as: Max_Anger__With_One_Eye_Open_3461.jpg
+3. Place it in this directory: E:\ATTACKS\vega-api\api\data\img-source\chunk4
+4. Delete this text file after successful download
+
+Note: This text file was created because the automatic download failed with a 404 error.

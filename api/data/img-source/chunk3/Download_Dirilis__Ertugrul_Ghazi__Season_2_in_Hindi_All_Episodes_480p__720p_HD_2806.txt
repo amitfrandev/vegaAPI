@@ -1,0 +1,17 @@
+Manual Download Required
+=======================
+
+Movie ID: 2806
+Title: Download Dirilis: Ertugrul (Ghazi – Season 2) in Hindi All Episodes 480p & 720p HD
+Full Title: Download Dirilis: Ertugrul (Ghazi – Season 2) in Hindi All Episodes 480p & 720p HD
+Original URL: https://vegamovies.yoga/wp-content/uploads/2020/06/Dirilis-Ertugrul-%E2%80%93-Season-2.jpg
+Error: HTTP 404: Not Found
+Date: 2025-06-17T09:21:02.026Z
+
+Instructions:
+1. Manually download the image from: https://vegamovies.yoga/wp-content/uploads/2020/06/Dirilis-Ertugrul-%E2%80%93-Season-2.jpg
+2. Save it as: Download_Dirilis__Ertugrul_Ghazi__Season_2_in_Hindi_All_Episodes_480p__720p_HD_2806.jpg
+3. Place it in this directory: E:\ATTACKS\vega-api\api\data\img-source\chunk3
+4. Delete this text file after successful download
+
+Note: This text file was created because the automatic download failed with a 404 error.

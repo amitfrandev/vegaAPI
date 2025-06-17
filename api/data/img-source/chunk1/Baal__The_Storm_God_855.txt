@@ -1,0 +1,17 @@
+Manual Download Required
+=======================
+
+Movie ID: 855
+Title: Ba’al – The Storm God
+Full Title: Download Ba’al – The Storm God (2008) Dual Audio {Hindi-English} 480p [300MB] | 720p [1GB]
+Original URL: https://vegamovies.yoga/wp-content/uploads/2020/08/Ba%E2%80%99al-%E2%80%93-The-Storm-God-2008.jpg
+Error: HTTP 404: Not Found
+Date: 2025-06-17T09:12:39.562Z
+
+Instructions:
+1. Manually download the image from: https://vegamovies.yoga/wp-content/uploads/2020/08/Ba%E2%80%99al-%E2%80%93-The-Storm-God-2008.jpg
+2. Save it as: Baal__The_Storm_God_855.jpg
+3. Place it in this directory: E:\ATTACKS\vega-api\api\data\img-source\chunk1
+4. Delete this text file after successful download
+
+Note: This text file was created because the automatic download failed with a 404 error.

@@ -9,7 +9,7 @@ const config = require('../utils/config');
 // Configuration
 const DOWNLOAD_CONFIG = {
   outputDir: path.join(process.cwd(), 'api', 'data', 'img-source'),
-  concurrentDownloads: 3, // Reduced for more human-like behavior
+  concurrentDownloads: 10, // Process 10 items at a time
   retryAttempts: 3,
   retryDelay: 1000,
   timeout: 30000,
@@ -31,6 +31,7 @@ let stats = {
   downloaded: 0,
   failed: 0,
   skipped: 0,
+  manualDownloads: 0, // Track manual download files created
   startTime: null,
   endTime: null
 };
@@ -193,7 +194,7 @@ async function downloadImageWithRetry(url, filePath) {
 
 // Helper function to process a single movie
 async function processMovie(movie, chunkNumber) {
-  const { id, title, thumbnail } = movie;
+  const { id, title, thumbnail, info } = movie;
   
   if (!thumbnail) {
     console.log(`[${id}] Skipping "${title}" - No thumbnail`);
@@ -212,34 +213,82 @@ async function processMovie(movie, chunkNumber) {
   const chunkDir = path.join(DOWNLOAD_CONFIG.outputDir, `chunk${chunkNumber}`);
   ensureDirectoryExists(chunkDir);
 
-  // Determine filename using movie title
+  // Parse info to get actual movie title
+  let actualTitle = title; // fallback to full title
+  try {
+    const infoData = JSON.parse(info || '[]');
+    if (infoData && infoData[0] && infoData[0].title) {
+      actualTitle = infoData[0].title;
+    }
+  } catch (error) {
+    console.log(`[${id}] Warning: Could not parse info for "${title}", using full title`);
+  }
+
+  // Determine filename using actual movie title + ID
   const extension = getFileExtension(fullUrl);
-  const sanitizedTitle = sanitizeFilename(title);
-  const filename = `${sanitizedTitle}${extension}`;
+  const sanitizedTitle = actualTitle
+    .replace(/[<>:"/\\|?*]/g, '_') // Remove invalid characters
+    .replace(/\s+/g, '_') // Replace spaces with underscores
+    .replace(/[^\w\-_.]/g, '') // Keep only alphanumeric, hyphens, underscores, dots
+    .substring(0, 100); // Limit length
+  const filename = `${sanitizedTitle}_${id}${extension}`;
   const filePath = path.join(chunkDir, filename);
 
   // Check if file already exists
   if (fs.existsSync(filePath)) {
-    console.log(`[${id}] Skipping "${title}" - File already exists`);
+    console.log(`[${id}] Skipping "${actualTitle}" - File already exists`);
     stats.skipped++;
     return;
   }
 
   try {
-    console.log(`[${id}] Downloading "${title}" from ${fullUrl}`);
+    console.log(`[${id}] Downloading "${actualTitle}" from ${fullUrl}`);
     await downloadImageWithRetry(fullUrl, filePath);
-    console.log(`[${id}] ✓ Downloaded "${title}" to ${filePath}`);
+    console.log(`[${id}] ✓ Downloaded "${actualTitle}" to ${filePath}`);
     stats.downloaded++;
     
     // Add human-like delay after successful download
     await humanDelay();
   } catch (error) {
-    console.error(`[${id}] ✗ Failed to download "${title}": ${error.message}`);
+    console.error(`[${id}] ✗ Failed to download "${actualTitle}": ${error.message}`);
     stats.failed++;
     
     // Clean up partial file if it exists
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
+    }
+    
+    // Check if it's a 404 error and create a text file for manual download
+    if (error.message.includes('404') || error.message.includes('Not Found')) {
+      const txtFilePath = path.join(chunkDir, `${sanitizedTitle}_${id}.txt`);
+      
+      // Create text file with download information
+      const txtContent = `Manual Download Required
+=======================
+
+Movie ID: ${id}
+Title: ${actualTitle}
+Full Title: ${title}
+Original URL: ${fullUrl}
+Error: ${error.message}
+Date: ${new Date().toISOString()}
+
+Instructions:
+1. Manually download the image from: ${fullUrl}
+2. Save it as: ${filename}
+3. Place it in this directory: ${chunkDir}
+4. Delete this text file after successful download
+
+Note: This text file was created because the automatic download failed with a 404 error.
+`;
+      
+      try {
+        fs.writeFileSync(txtFilePath, txtContent);
+        console.log(`[${id}] 📝 Created manual download file: ${txtFilePath}`);
+        stats.manualDownloads++;
+      } catch (txtError) {
+        console.error(`[${id}] ✗ Failed to create manual download file: ${txtError.message}`);
+      }
     }
   }
 }
@@ -278,6 +327,7 @@ function printStats() {
   console.log(`Successfully downloaded: ${stats.downloaded}`);
   console.log(`Failed downloads: ${stats.failed}`);
   console.log(`Skipped (no thumbnail/exists): ${stats.skipped}`);
+  console.log(`Manual downloads: ${stats.manualDownloads}`);
   console.log(`Duration: ${durationMinutes}m ${durationSeconds % 60}s`);
   if (stats.total > 0) {
     console.log(`Average time per download: ${Math.round(duration / stats.total)}ms`);
@@ -308,7 +358,7 @@ async function downloadImagesForMovies(movies, customDbPath = null, chunkNumber 
       console.log('⚠️ No movies with thumbnails found in the provided list');
       return {
         success: true,
-        stats: { total: 0, downloaded: 0, failed: 0, skipped: 0 }
+        stats: { total: 0, downloaded: 0, failed: 0, skipped: 0, manualDownloads: 0 }
       };
     }
 

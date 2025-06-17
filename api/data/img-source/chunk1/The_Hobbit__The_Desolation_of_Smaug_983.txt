@@ -1,0 +1,17 @@
+Manual Download Required
+=======================
+
+Movie ID: 983
+Title: The Hobbit: The Desolation of Smaug
+Full Title: Download The Hobbit: The Desolation of Smaug (2013) Dual Audio [Hindi-English] 480p [500MB] | 720p [1.5GB] | 1080p [4.6GB]
+Original URL: https://vegamovies.yoga/wp-content/uploads/2020/09/The-Hobbit-%E2%80%93-2-2013-1.jpg
+Error: HTTP 404: Not Found
+Date: 2025-06-17T09:13:09.468Z
+
+Instructions:
+1. Manually download the image from: https://vegamovies.yoga/wp-content/uploads/2020/09/The-Hobbit-%E2%80%93-2-2013-1.jpg
+2. Save it as: The_Hobbit__The_Desolation_of_Smaug_983.jpg
+3. Place it in this directory: E:\ATTACKS\vega-api\api\data\img-source\chunk1
+4. Delete this text file after successful download
+
+Note: This text file was created because the automatic download failed with a 404 error.

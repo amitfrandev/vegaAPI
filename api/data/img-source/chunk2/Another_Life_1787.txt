@@ -1,0 +1,17 @@
+Manual Download Required
+=======================
+
+Movie ID: 1787
+Title: Another Life
+Full Title: Download Netflix Another Life (Season 1 – 2) Dual Audio {Hindi-English} 480p [150MB] | 720p [350MB] WEB-DL
+Original URL: https://vegamovies.yoga/wp-content/uploads/2020/12/%E0%A4%85%E0%A4%A8%E0%A4%A6%E0%A4%B0-%E0%A4%B2%E0%A4%BE%E0%A4%87%E0%A4%AB%E0%A4%BC-%E0%A4%B8%E0%A5%80%E0%A4%9C%E0%A4%BC%E0%A4%A8-2-Netflix.jpg
+Error: HTTP 404: Not Found
+Date: 2025-06-17T09:16:38.442Z
+
+Instructions:
+1. Manually download the image from: https://vegamovies.yoga/wp-content/uploads/2020/12/%E0%A4%85%E0%A4%A8%E0%A4%A6%E0%A4%B0-%E0%A4%B2%E0%A4%BE%E0%A4%87%E0%A4%AB%E0%A4%BC-%E0%A4%B8%E0%A5%80%E0%A4%9C%E0%A4%BC%E0%A4%A8-2-Netflix.jpg
+2. Save it as: Another_Life_1787.jpg
+3. Place it in this directory: E:\ATTACKS\vega-api\api\data\img-source\chunk2
+4. Delete this text file after successful download
+
+Note: This text file was created because the automatic download failed with a 404 error.

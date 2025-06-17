@@ -1,0 +1,17 @@
+Manual Download Required
+=======================
+
+Movie ID: 8860
+Title: I Am Groot
+Full Title: Download I Am Groot (Season 1 – 2) Complete {English With Subtitles} Disney+ Hotstar 480p | 720p | 1080p WEB-DL
+Original URL: https://vegamovies.yoga/wp-content/uploads/2023/09/I-Am-Groot-Season-1-%E2%80%93-2-Complete-Vegamovies.jpg
+Error: HTTP 404: Not Found
+Date: 2025-06-17T09:58:07.668Z
+
+Instructions:
+1. Manually download the image from: https://vegamovies.yoga/wp-content/uploads/2023/09/I-Am-Groot-Season-1-%E2%80%93-2-Complete-Vegamovies.jpg
+2. Save it as: I_Am_Groot_8860.jpg
+3. Place it in this directory: E:\ATTACKS\vega-api\api\data\img-source\chunk9
+4. Delete this text file after successful download
+
+Note: This text file was created because the automatic download failed with a 404 error.

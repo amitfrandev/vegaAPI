@@ -1,0 +1,17 @@
+Manual Download Required
+=======================
+
+Movie ID: 7277
+Title: The Pale Blue Eye – Netflix Original
+Full Title: Download The Pale Blue Eye – Netflix Original (2023) WEB-DL Dual Audio {Hindi-English} 480p [450MB] | 720p [950MB] | 1080p [2.8GB]
+Original URL: https://vegamovies.yoga/wp-content/uploads/2023/01/The-Pale-Blue-Eye-%E2%80%93-Netflix-vega-poster.jpg
+Error: HTTP 404: Not Found
+Date: 2025-06-17T09:47:57.983Z
+
+Instructions:
+1. Manually download the image from: https://vegamovies.yoga/wp-content/uploads/2023/01/The-Pale-Blue-Eye-%E2%80%93-Netflix-vega-poster.jpg
+2. Save it as: The_Pale_Blue_Eye__Netflix_Original_7277.jpg
+3. Place it in this directory: E:\ATTACKS\vega-api\api\data\img-source\chunk8
+4. Delete this text file after successful download
+
+Note: This text file was created because the automatic download failed with a 404 error.
