@@ -8,6 +8,9 @@ const fs = require('fs');
 const path = require('path');
 const config = require('../utils/config');
 
+// Import image downloader
+const { downloadImagesForMovies } = require('../scripts/image-downloader');
+
 // Create output directory
 const JSON_OUTPUT_DIR = path.join(process.cwd(), 'api', 'data');
 if (!fs.existsSync(JSON_OUTPUT_DIR)) {
@@ -55,6 +58,11 @@ async function exportData() {
     const moviesPerFile = 1000;
     const totalChunks = Math.ceil(totalMovies / moviesPerFile);
     
+    // Track total images downloaded across all chunks
+    let totalImagesDownloaded = 0;
+    let totalImagesSkipped = 0;
+    let totalImagesFailed = 0;
+    
     for (let chunk = 0; chunk < totalChunks; chunk++) {
       const offset = chunk * moviesPerFile;
       console.log(`Exporting movies chunk ${chunk + 1}/${totalChunks} (offset: ${offset})`);
@@ -66,8 +74,6 @@ async function exportData() {
          LIMIT ? OFFSET ?`, 
         [moviesPerFile, offset]
       );
-      
-
       
       // Process the data
       const processedMovies = movies.map(movie => ({
@@ -85,6 +91,19 @@ async function exportData() {
       
       fs.writeFileSync(outputFile, JSON.stringify(processedMovies));
       console.log(`Wrote ${processedMovies.length} movies to ${outputFile}`);
+      
+      // Download images for this specific chunk only
+      console.log(`\n🔄 Downloading images for chunk ${chunk + 1}/${totalChunks}...`);
+      const imageResult = await downloadImagesForMovies(movies, dbPath);
+      
+      if (imageResult.success) {
+        totalImagesDownloaded += imageResult.stats.downloaded;
+        totalImagesSkipped += imageResult.stats.skipped;
+        totalImagesFailed += imageResult.stats.failed;
+        console.log(`✅ Chunk ${chunk + 1} images: ${imageResult.stats.downloaded} downloaded, ${imageResult.stats.skipped} skipped, ${imageResult.stats.failed} failed`);
+      } else {
+        console.error(`❌ Chunk ${chunk + 1} image download failed:`, imageResult.error);
+      }
     }
     
     // 2. Export movies lookup by ID
@@ -254,6 +273,16 @@ async function exportData() {
     
     console.log('Export completed successfully!');
     console.log(`All data exported to ${JSON_OUTPUT_DIR}`);
+    
+    // Print final image download summary
+    console.log('\n' + '='.repeat(60));
+    console.log('FINAL IMAGE DOWNLOAD SUMMARY');
+    console.log('='.repeat(60));
+    console.log(`Total images downloaded: ${totalImagesDownloaded}`);
+    console.log(`Total images skipped (already exist): ${totalImagesSkipped}`);
+    console.log(`Total images failed: ${totalImagesFailed}`);
+    console.log(`Images saved to: api/img-source/`);
+    console.log('='.repeat(60));
     
   } catch (error) {
     console.error('Error exporting data:', error);
