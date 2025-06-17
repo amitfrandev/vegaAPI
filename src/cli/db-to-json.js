@@ -9,7 +9,7 @@ const path = require('path');
 const config = require('../utils/config');
 
 // Import image downloader
-const { downloadImagesForMovies } = require('../scripts/image-downloader');
+const { downloadImagesForMovies, getFullThumbnailUrl } = require('../scripts/image-downloader');
 
 // Create output directory
 const JSON_OUTPUT_DIR = path.join(process.cwd(), 'api', 'data');
@@ -44,6 +44,39 @@ function runQuery(query, params = []) {
   });
 }
 
+// Helper function to get file extension from URL
+function getFileExtension(url) {
+  try {
+    const urlObj = new URL(url);
+    const pathname = urlObj.pathname;
+    const extension = path.extname(pathname);
+    return extension || '.jpg'; // Default to .jpg if no extension found
+  } catch (error) {
+    return '.jpg'; // Default fallback
+  }
+}
+
+// Helper function to sanitize filename for filesystem
+function sanitizeFilename(filename) {
+  return filename
+    .replace(/[<>:"/\\|?*]/g, '_') // Remove invalid characters
+    .replace(/\s+/g, '_') // Replace spaces with underscores
+    .replace(/[^\w\-_.]/g, '') // Keep only alphanumeric, hyphens, underscores, dots
+    .substring(0, 100); // Limit length
+}
+
+// Helper function to generate local image URL
+function generateLocalImageUrl(movieId, title, originalThumbnail, chunkNumber) {
+  if (!originalThumbnail) return null;
+  
+  const extension = getFileExtension(originalThumbnail);
+  const sanitizedTitle = sanitizeFilename(title);
+  const filename = `${sanitizedTitle}${extension}`;
+  
+  // Return local path relative to api directory (images are now in data/img-source/chunkX)
+  return `/data/img-source/chunk${chunkNumber}/${filename}`;
+}
+
 // Main export function
 async function exportData() {
   try {
@@ -71,8 +104,8 @@ async function exportData() {
       console.log(`\n📦 CHUNK ${chunk + 1}/${totalChunks} (Movies ${offset + 1}-${Math.min(offset + moviesPerFile, totalMovies)})`);
       console.log('='.repeat(60));
       
-      // Step 1: Fetch movies for this chunk
-      console.log(`📋 Fetching movies for chunk ${chunk + 1}...`);
+      // Step 1: Fetch movies for this chunk from database
+      console.log(`📋 Step 1: Fetching movies for chunk ${chunk + 1} from database...`);
       const movies = await runQuery(
         `SELECT id, title, url, thumbnail, date, info, tags 
          FROM movies 
@@ -83,26 +116,9 @@ async function exportData() {
       
       console.log(`✓ Fetched ${movies.length} movies from database`);
       
-      // Step 2: Process and export JSON data for this chunk
-      console.log(`📄 Processing JSON data for chunk ${chunk + 1}...`);
-      const processedMovies = movies.map(movie => ({
-        id: movie.id,
-        title: movie.title,
-        url: movie.url,
-        thumbnail: movie.thumbnail,
-        date: movie.date,
-        info: JSON.parse(movie.info || '[]'),
-        tags: JSON.parse(movie.tags || '[]')
-      }));
-      
-      // Write JSON file for this chunk
-      const outputFile = path.join(JSON_OUTPUT_DIR, `movies_${chunk}.json`);
-      fs.writeFileSync(outputFile, JSON.stringify(processedMovies));
-      console.log(`✅ Exported ${processedMovies.length} movies to ${outputFile}`);
-      
-      // Step 3: Download images for this specific chunk immediately
-      console.log(`🖼️ Downloading images for chunk ${chunk + 1}...`);
-      const imageResult = await downloadImagesForMovies(movies, dbPath);
+      // Step 2: Download images for this chunk to api/data/img-source/
+      console.log(`🖼️ Step 2: Downloading images for chunk ${chunk + 1} to api/data/img-source/chunk${chunk + 1}/...`);
+      const imageResult = await downloadImagesForMovies(movies, dbPath, chunk + 1);
       
       if (imageResult.success) {
         totalImagesDownloaded += imageResult.stats.downloaded;
@@ -116,10 +132,33 @@ async function exportData() {
         console.error(`❌ Chunk ${chunk + 1} image download failed:`, imageResult.error);
       }
       
-      // Step 4: Show chunk summary
+      // Step 3: Process JSON data with local image URLs
+      console.log(`📄 Step 3: Processing JSON data with local image URLs for chunk ${chunk + 1}...`);
+      const processedMovies = movies.map(movie => {
+        // Generate local image URL for downloaded images
+        const localImageUrl = generateLocalImageUrl(movie.id, movie.title, movie.thumbnail, chunk + 1);
+        
+        return {
+          id: movie.id,
+          title: movie.title,
+          url: movie.url,
+          thumbnail: localImageUrl, // Use local URL instead of DB URL
+          date: movie.date,
+          info: JSON.parse(movie.info || '[]'),
+          tags: JSON.parse(movie.tags || '[]')
+        };
+      });
+      
+      // Step 4: Write JSON file for this chunk with local image URLs
+      const outputFile = path.join(JSON_OUTPUT_DIR, `movies_${chunk}.json`);
+      fs.writeFileSync(outputFile, JSON.stringify(processedMovies));
+      console.log(`✅ Exported ${processedMovies.length} movies to ${outputFile} with local image URLs`);
+      
+      // Step 5: Show chunk summary
       console.log(`\n📊 Chunk ${chunk + 1} Summary:`);
-      console.log(`   - JSON: ${processedMovies.length} movies exported`);
-      console.log(`   - Images: ${imageResult.success ? imageResult.stats.downloaded : 0} downloaded`);
+      console.log(`   - Database: ${movies.length} movies fetched`);
+      console.log(`   - Images: ${imageResult.success ? imageResult.stats.downloaded : 0} downloaded to api/data/img-source/chunk${chunk + 1}/`);
+      console.log(`   - JSON: ${processedMovies.length} movies exported with local URLs`);
       console.log(`   - Progress: ${chunk + 1}/${totalChunks} chunks completed`);
       
       // Add a small delay between chunks (except for the last one)
@@ -302,6 +341,7 @@ async function exportData() {
     console.log('EXPORT COMPLETED SUCCESSFULLY!');
     console.log('='.repeat(60));
     console.log(`📁 All data exported to: ${JSON_OUTPUT_DIR}`);
+    console.log(`🖼️ All images downloaded to: api/data/img-source/ (organized by chunks)`);
     
     // Print final image download summary
     console.log('\n' + '='.repeat(60));
@@ -310,7 +350,8 @@ async function exportData() {
     console.log(`Total images downloaded: ${totalImagesDownloaded}`);
     console.log(`Total images skipped (already exist): ${totalImagesSkipped}`);
     console.log(`Total images failed: ${totalImagesFailed}`);
-    console.log(`Images saved to: api/img-source/`);
+    console.log(`Images saved to: api/data/img-source/ (chunk1, chunk2, etc.)`);
+    console.log(`JSON files contain local image URLs: /data/img-source/chunkX/[title].[ext]`);
     console.log('='.repeat(60));
     
   } catch (error) {

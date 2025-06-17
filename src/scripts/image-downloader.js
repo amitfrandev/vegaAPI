@@ -8,7 +8,7 @@ const config = require('../utils/config');
 
 // Configuration
 const DOWNLOAD_CONFIG = {
-  outputDir: path.join(process.cwd(), 'api', 'img-source'),
+  outputDir: path.join(process.cwd(), 'api', 'data', 'img-source'),
   concurrentDownloads: 3, // Reduced for more human-like behavior
   retryAttempts: 3,
   retryDelay: 1000,
@@ -192,7 +192,7 @@ async function downloadImageWithRetry(url, filePath) {
 }
 
 // Helper function to process a single movie
-async function processMovie(movie) {
+async function processMovie(movie, chunkNumber) {
   const { id, title, thumbnail } = movie;
   
   if (!thumbnail) {
@@ -208,15 +208,15 @@ async function processMovie(movie) {
     return;
   }
 
-  // Create directory for this movie
-  const movieDir = path.join(DOWNLOAD_CONFIG.outputDir, id.toString());
-  ensureDirectoryExists(movieDir);
+  // Create directory for this chunk
+  const chunkDir = path.join(DOWNLOAD_CONFIG.outputDir, `chunk${chunkNumber}`);
+  ensureDirectoryExists(chunkDir);
 
   // Determine filename using movie title
   const extension = getFileExtension(fullUrl);
   const sanitizedTitle = sanitizeFilename(title);
   const filename = `${sanitizedTitle}${extension}`;
-  const filePath = path.join(movieDir, filename);
+  const filePath = path.join(chunkDir, filename);
 
   // Check if file already exists
   if (fs.existsSync(filePath)) {
@@ -245,7 +245,7 @@ async function processMovie(movie) {
 }
 
 // Helper function to process movies in batches
-async function processMoviesInBatches(movies) {
+async function processMoviesInBatches(movies, chunkNumber) {
   const batches = [];
   for (let i = 0; i < movies.length; i += DOWNLOAD_CONFIG.concurrentDownloads) {
     batches.push(movies.slice(i, i + DOWNLOAD_CONFIG.concurrentDownloads));
@@ -255,7 +255,7 @@ async function processMoviesInBatches(movies) {
     const batch = batches[i];
     console.log(`\nProcessing batch ${i + 1}/${batches.length} (${batch.length} movies)`);
     
-    const promises = batch.map(movie => processMovie(movie));
+    const promises = batch.map(movie => processMovie(movie, chunkNumber));
     await Promise.all(promises);
     
     // Small delay between batches to be respectful
@@ -286,7 +286,7 @@ function printStats() {
 }
 
 // Function to download images for specific movies (for integration)
-async function downloadImagesForMovies(movies, customDbPath = null) {
+async function downloadImagesForMovies(movies, customDbPath = null, chunkNumber = 1) {
   try {
     const useDbPath = customDbPath || dbPath;
     
@@ -317,7 +317,8 @@ async function downloadImagesForMovies(movies, customDbPath = null) {
     stats.startTime = Date.now();
 
     console.log(`🔄 Starting image downloads for ${moviesWithThumbnails.length} movies with thumbnails...`);
-    await processMoviesInBatches(moviesWithThumbnails);
+    console.log(`📁 Images will be saved to: ${path.join(DOWNLOAD_CONFIG.outputDir, `chunk${chunkNumber}`)}`);
+    await processMoviesInBatches(moviesWithThumbnails, chunkNumber);
 
     // Finalize statistics
     stats.endTime = Date.now();
