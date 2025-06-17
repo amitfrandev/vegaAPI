@@ -186,8 +186,6 @@ function getRating(movie) {
   return isNaN(cleaned) ? 0 : cleaned;
 }
 
-
-
 // Paginate movies
 function paginateMovies(movies, page = 1, limit = MOVIES_PER_PAGE) {
   const startIndex = (page - 1) * limit;
@@ -346,15 +344,61 @@ function parseImdbRating(ratingStr) {
 
 // Get movies by custom query (featured)
 async function getMoviesByCustomQuery(page = 1, limit = MOVIES_PER_PAGE, options = {}) {
-  const result = await getAllMovies(page, limit, {
-    type: options.type,
-    sort: 'release_imdb_desc' // Special sort only for featured
+  // Initialize
+  initializeDb();
+  
+  if (!cache.manifest) {
+    throw new Error('Failed to load manifest');
+  }
+  
+  // We need to load all chunks when filtering
+  const allMovies = [];
+  for (let i = 0; i < cache.manifest.moviesChunks; i++) {
+    const chunk = getMoviesChunk(i);
+    if (chunk) {
+      allMovies.push(...chunk);
+    }
+  }
+  
+  // Calculate date 3 months ago from now
+  const threeMonthsAgo = new Date();
+  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+  
+  // Filter movies from last 3 months and with IMDB rating >= 6.0
+  const recentHighRatedMovies = allMovies.filter(movie => {
+    // Check if movie is from last 3 months
+    const movieDate = new Date(movie.date);
+    const isRecent = movieDate >= threeMonthsAgo;
+    
+    // Check if movie has good IMDB rating (>= 6.0)
+    const imdbRating = getRating(movie);
+    const hasGoodRating = imdbRating >= 6.0;
+    
+    return isRecent && hasGoodRating;
   });
   
-  return result;
+  // Apply type filter if specified
+  let filteredMovies = recentHighRatedMovies;
+  if (options.type && options.type !== 'all') {
+    filteredMovies = filteredMovies.filter(movie => 
+      getMovieType(movie) === options.type
+    );
+  }
+  
+  // Sort by release year (descending) then by IMDB rating (descending)
+  const sortedMovies = sortMovies(filteredMovies, 'release_imdb_desc');
+  
+  // Apply pagination
+  const paginatedMovies = paginateMovies(sortedMovies, page, limit);
+  
+  return {
+    movies: paginatedMovies,
+    page: parseInt(page),
+    limit: parseInt(limit),
+    totalItems: filteredMovies.length,
+    totalPages: Math.ceil(filteredMovies.length / limit)
+  };
 }
-
-
 
 // Get movies by tag
 async function getMoviesByTag(tag, page = 1, limit = MOVIES_PER_PAGE) {
