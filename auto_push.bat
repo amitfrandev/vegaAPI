@@ -1,6 +1,9 @@
 @echo off
 setlocal EnableDelayedExpansion
 
+:: Flag to track first run (no wait)
+set FIRST_RUN=true
+
 :LOOP
 cls
 echo ========================
@@ -30,9 +33,14 @@ if not errorlevel 1 (
     )
 )
 
-:: Wait for 5 minutes (300 seconds)
-echo Waiting 5 minutes before next check...
-timeout /t 300 /nobreak >nul
+:: Delay only after the first run
+if "%FIRST_RUN%"=="true" (
+    set FIRST_RUN=false
+) else (
+    echo Waiting 5 minutes before next check...
+    timeout /t 300 /nobreak >nul
+)
+
 goto LOOP
 
 :END
