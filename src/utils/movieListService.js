@@ -1687,10 +1687,10 @@ function extractScreenshots($) {
       const nextParagraph = $(this).next("p");
       if (nextParagraph.length > 0) {
         nextParagraph.find("img").each(function () {
-          const src = $(this).attr("src");
+          const src = $(this).attr("data-lazy-src");
           if (src) {
             screenshots.push(src);
-            console.log("Found screenshot under heading:", src);
+            console.log(`Found screenshot: ${src}`);
           }
         });
       }
@@ -1702,7 +1702,7 @@ function extractScreenshots($) {
     console.log("No screenshots found after headings, trying fallback method");
 
     $("img").each(function () {
-      const src = $(this).attr("src");
+      const src = $(this).attr("data-lazy-src");
       if (
         src &&
         (src.includes("imgbb.top/ib/") ||
@@ -1716,7 +1716,7 @@ function extractScreenshots($) {
           !src.includes("favicon")
         ) {
           screenshots.push(src);
-          console.log("Found screenshot with fallback method:", src);
+          console.log(`Found screenshot: ${src}`);
         }
       }
     });
@@ -1732,7 +1732,7 @@ function extractMovieNote($) {
 
   // Find the screenshot images first
   const screenshotImg = $("p img").filter(function () {
-    const src = $(this).attr("src");
+    const src = $(this).attr("data-lazy-src");
     return (
       src && (src.includes("imgbb.top/ib/") || src.includes('decoding="async"'))
     );
@@ -1847,15 +1847,23 @@ function cleanUrl(url) {
 function cleanThumbnail(thumbnail) {
   if (!thumbnail) return "";
 
-  // Strip domain part (e.g., https://app.vegamovies.bot/) and keep only the path
+  // Handle protocol-relative URLs (starting with //)
+  if (thumbnail.startsWith("//")) {
+    // Remove the // and domain part, keep only the path
+    const domain = config.api.rootUrl.replace(/^https?:\/\//, "");
+    return thumbnail.replace(new RegExp(`^//${domain.replace(/\./g, '\\.')}/?`), "");
+  }
+
+  // Handle full URLs with protocol
   if (thumbnail.includes("://")) {
     try {
       const urlObj = new URL(thumbnail);
       return urlObj.pathname.replace(/^\/+/, ""); // Remove leading slashes
     } catch (err) {
       console.error("Error parsing thumbnail URL:", err);
-      // If URL parsing fails, try to remove common domain patterns
-      return thumbnail.replace(/^https?:\/\/[^\/]+\//, "");
+      // If URL parsing fails, try to remove the domain from config
+      const domain = config.api.rootUrl.replace(/^https?:\/\//, "");
+      return thumbnail.replace(new RegExp(`^https?://${domain.replace(/\./g, '\\.')}/?`), "");
     }
   }
 
@@ -2013,7 +2021,10 @@ async function getMovieList(page = 1) {
         }
       }
 
-      const thumbnail = cleanThumbnail(article.find("img").attr("src"));
+      const thumbnail = cleanThumbnail(article.find("img").attr("data-lazy-src"));
+      if (thumbnail) {
+        console.log(`Found thumbnail: ${thumbnail}`);
+      }
 
       if (title && url) {
         // Store page separately for tracking but don't include it in the final movie object for database
