@@ -784,7 +784,7 @@ async function processQualityBasedLinks(mainContent, $) {
     if (buttonText.includes("V-Cloud")) return "V-Cloud";
     if (buttonText.includes("GDToT")) return "GDToT";
     if (buttonText.includes("Filepress")) return "Filepress";
-    if (buttonText.includes("DropGalaxy")) return "DropGalaxy";
+    if (buttonText.includes("DropGalaxy") || buttonText.includes("Drop [Best]") || buttonText.includes("Drop")) return "DropGalaxy";
     if (buttonText.includes("Batch/Zip")) return "Batch/Zip";
     return "Download";
   }
@@ -1172,7 +1172,7 @@ async function processQualityBasedLinks(mainContent, $) {
     }
   }
 
-  // Now, visit nexdrive.lol links and extract actual download links
+  // Now, visit nexdrive links and extract actual download links
   const processedSections = [];
 
   // Create a deep copy of the sections array
@@ -1321,7 +1321,7 @@ async function processQualityBasedLinks(mainContent, $) {
           processedSection.links.push(batchZipLinks);
         }
       }
-      // Check if we have any nexdrive.lol links to process (non Batch/Zip)
+      // Check if we have any nexdrive links to process (non Batch/Zip)
       else if (
         linkGroup.links.some(
           (link) =>
@@ -1689,34 +1689,32 @@ function extractScreenshots($) {
         nextParagraph.find("img").each(function () {
           const src = $(this).attr("data-lazy-src");
           if (src) {
-            screenshots.push(src);
-            console.log(`Found screenshot: ${src}`);
+            const cleanedSrc = cleanScreenshotUrl(src);
+            screenshots.push(cleanedSrc);
+            console.log(`Found screenshot: ${cleanedSrc}`);
           }
         });
       }
     }
   });
 
-  // If no screenshots found with Method 1, try Method 2 (original method)
+  // If no screenshots found with Method 1, try Method 2 (fallback method)
   if (screenshots.length === 0) {
     console.log("No screenshots found after headings, trying fallback method");
 
     $("img").each(function () {
       const src = $(this).attr("data-lazy-src");
-      if (
-        src &&
-        (src.includes("imgbb.top/ib/") ||
-          src.includes('decoding="async"') ||
-          src.includes("i.imgur.com"))
-      ) {
+      if (src) {
+        // Skip images that are likely not screenshots
         if (
           !src.includes("poster") &&
           !src.includes("banner") &&
           !src.includes("logo") &&
           !src.includes("favicon")
         ) {
-          screenshots.push(src);
-          console.log(`Found screenshot: ${src}`);
+          const cleanedSrc = cleanScreenshotUrl(src);
+          screenshots.push(cleanedSrc);
+          console.log(`Found screenshot: ${cleanedSrc}`);
         }
       }
     });
@@ -1733,9 +1731,7 @@ function extractMovieNote($) {
   // Find the screenshot images first
   const screenshotImg = $("p img").filter(function () {
     const src = $(this).attr("data-lazy-src");
-    return (
-      src && (src.includes("imgbb.top/ib/") || src.includes('decoding="async"'))
-    );
+    return src && src.length > 0; // Any image with a source
   });
 
   // If screenshots exist, look at subsequent paragraphs until we hit an hr tag
@@ -1841,6 +1837,30 @@ function cleanUrl(url) {
   }
   // Return the full URL
   return url;
+}
+
+// Helper function to clean screenshot URLs
+function cleanScreenshotUrl(url) {
+  if (!url) return "";
+
+  // Handle protocol-relative URLs (starting with //)
+  if (url.startsWith("//")) {
+    return url.replace(/^\/\//, "https://");
+  }
+
+  // Handle full URLs with protocol
+  if (url.includes("://")) {
+    try {
+      const urlObj = new URL(url);
+      return urlObj.href; // Return the full URL as-is
+    } catch (err) {
+      console.error("Error parsing screenshot URL:", err);
+      return url; // Return original if parsing fails
+    }
+  }
+
+  // Already a relative path, just clean leading slashes
+  return url.replace(/^\/+/, "");
 }
 
 // Helper function to clean thumbnail path
@@ -2438,7 +2458,7 @@ async function fetchNextdriveLinks(url, heading = null) {
       if (buttonText.includes("V-Cloud")) return "V-Cloud";
       if (buttonText.includes("GDToT")) return "GDToT";
       if (buttonText.includes("Filepress")) return "Filepress";
-      if (buttonText.includes("DropGalaxy")) return "DropGalaxy";
+      if (buttonText.includes("DropGalaxy") || buttonText.includes("Drop [Best]") || buttonText.includes("Drop")) return "DropGalaxy";
       if (buttonText.includes("Batch/Zip")) return "Batch/Zip";
       return "Download";
     }
@@ -2469,6 +2489,58 @@ async function fetchNextdriveLinks(url, heading = null) {
         );
       }
     });
+
+    // Look for episode buttons inside p tags (for pages without headings)
+    const episodeButtons = [];
+    $("p a").each(function () {
+      const link = $(this);
+      const href = link.attr("href");
+      const buttonText = link.find("span").text().trim() || link.text().trim();
+      
+      // Check if this looks like an episode button
+      const episodeMatch = buttonText.match(/Episode\s*(\d+)/i);
+      if (episodeMatch && href && !href.includes("#") && href !== url) {
+        const episodeNumber = episodeMatch[1];
+        episodeButtons.push({
+          episode: episodeNumber,
+          href: href,
+          text: buttonText,
+          element: link
+        });
+        console.log(`Found episode button: ${buttonText} -> ${href}`);
+      }
+    });
+
+    // If we found episode buttons, process them first
+    if (episodeButtons.length > 0) {
+      console.log(`Found ${episodeButtons.length} episode buttons`);
+      
+      // Group episode buttons by episode number
+      const episodeGroups = {};
+      episodeButtons.forEach(button => {
+        if (!episodeGroups[button.episode]) {
+          episodeGroups[button.episode] = [];
+        }
+        episodeGroups[button.episode].push(button);
+      });
+
+      // Create a result structure for episode-based content
+      const result = {
+        buttonLabel: "Episode Downloads",
+        type: "Download",
+        links: {}
+      };
+
+      // Add each episode to the links object
+      Object.keys(episodeGroups).forEach(episodeNum => {
+        const buttons = episodeGroups[episodeNum];
+        // Use the first button's href for this episode
+        result.links[episodeNum] = buttons[0].href;
+        console.log(`Added episode ${episodeNum} link: ${buttons[0].href}`);
+      });
+
+      return [result];
+    }
 
     // Check if page content has episode markers
     const pageContent = $(".entry.themeform").text();
@@ -2743,7 +2815,7 @@ async function fetchNextdriveLinks(url, heading = null) {
       const standardResults = Object.values(buttonTypes);
 
       // FALLBACK: If no links found through conventional methods, try direct button extraction
-      // This section will catch the new button UI on nexdrive.lol pages
+      // This section will catch the new button UI on nexdrive pages
       if (standardResults.length === 0) {
         console.log(
           "No links found with standard extraction, trying fallback button extraction..."
