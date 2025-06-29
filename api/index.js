@@ -220,6 +220,11 @@ function getFullThumbnailUrl(thumbnailPath) {
     return '';
   }
   
+  // Handle protocol-relative URLs (starting with //)
+  if (thumbnailPath.startsWith('//')) {
+    return `https:${thumbnailPath}`;
+  }
+  
   // If the path already starts with http:// or https://, return it as is
   if (thumbnailPath.startsWith('http://') || thumbnailPath.startsWith('https://')) {
     return thumbnailPath;
