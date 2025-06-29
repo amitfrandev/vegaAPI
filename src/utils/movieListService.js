@@ -223,7 +223,7 @@ async function processNexdriveLinks(mainContent, $) {
                 )) {
                   totalLinksFound++;
 
-                  if (nexdriveUrl.includes("nexdrive.lol")) {
+                  if (nexdriveUrl.includes("nexdrive")) {
                     console.log(
                       `\nFollowing Batch/Zip Nexdrive link: ${nexdriveUrl}`
                     );
@@ -367,7 +367,7 @@ async function processNexdriveLinks(mainContent, $) {
               if (
                 Object.values(group.links).some(
                   (url) =>
-                    url.includes("nexdrive.lol") ||
+                    url.includes("nexdrive") ||
                     url.includes("gdtot") ||
                     url.includes("gdflix") ||
                     url.includes("driveleech")
@@ -385,7 +385,7 @@ async function processNexdriveLinks(mainContent, $) {
                   // Skip non-Nexdrive links
                   if (
                     !nexdriveUrl ||
-                    (!nexdriveUrl.includes("nexdrive.lol") &&
+                    (!nexdriveUrl.includes("nexdrive") &&
                       !nexdriveUrl.includes("gdtot") &&
                       !nexdriveUrl.includes("gdflix") &&
                       !nexdriveUrl.includes("driveleech"))
@@ -525,7 +525,7 @@ async function processNexdriveLinks(mainContent, $) {
               const processedLinks = group.links.map((link) => {
                 if (
                   link.link &&
-                  (link.link.includes("nexdrive.lol") ||
+                  (link.link.includes("nexdrive") ||
                     link.link.includes("gdtot") ||
                     link.link.includes("gdflix") ||
                     link.link.includes("driveleech"))
@@ -1245,7 +1245,7 @@ async function processQualityBasedLinks(mainContent, $) {
         for (const link of linkGroup.links) {
           if (
             link.link &&
-            (link.link.includes("nexdrive.lol") ||
+            (link.link.includes("nexdrive") ||
               link.link.includes("gdtot") ||
               link.link.includes("gdflix") ||
               link.link.includes("driveleech"))
@@ -1326,7 +1326,7 @@ async function processQualityBasedLinks(mainContent, $) {
         linkGroup.links.some(
           (link) =>
             link.link &&
-            (link.link.includes("nexdrive.lol") ||
+            (link.link.includes("nexdrive") ||
               link.link.includes("gdtot") ||
               link.link.includes("gdflix") ||
               link.link.includes("driveleech"))
@@ -1341,7 +1341,7 @@ async function processQualityBasedLinks(mainContent, $) {
           // Skip non-nexdrive links
           if (
             !link.link ||
-            (!link.link.includes("nexdrive.lol") &&
+            (!link.link.includes("nexdrive") &&
               !link.link.includes("gdtot") &&
               !link.link.includes("gdflix") &&
               !link.link.includes("driveleech"))
